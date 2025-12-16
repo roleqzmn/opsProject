@@ -1,3 +1,4 @@
 *.o
 sop-backup
 Makefile
+*.json
