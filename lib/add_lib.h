@@ -7,11 +7,12 @@
 #include <dirent.h>
 #include <string_management.h>
 #include <linux/limits.h>
+#include <utime.h>
 
 #define ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), exit(EXIT_FAILURE))
 #define LOG_ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__))
 
-void ensure_dir_exists(const char* path); //ensures that a directory exists, creates it if it doesn't
+void ensure_dir_exists(const char* path, struct stat st); //ensures that a directory exists, creates it if it doesn't
 
 void copy_file(const char* src_path, const char* dest_path); //copies a file from src_path to dest_path
 

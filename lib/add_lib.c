@@ -1,23 +1,30 @@
 #include <add_lib.h>
 
-void ensure_dir_exists(const char* path){
-    struct stat st;
-    if(stat(path, &st) == -1){
-        if(mkdir(path, 0700) == -1){
+void ensure_dir_exists(const char* path, struct stat st){
+    struct stat _st;
+    if(stat(path, &_st) == -1){
+        if(mkdir(path, st.st_mode) == -1){ //TODO: implement recursive directory creation
             ERR("mkdir");
         }
     } 
 }
 
-void copy_file(const char* src_path, const char* dest_path){
-    FILE* src = fopen(src_path, "rb");
-    if(src == NULL){
-        LOG_ERR("fopen src");
+void copy_file(const char* src_path, const char* dest_path){   
+    struct stat st;
+    if(stat(src_path, &st) == -1){
+        LOG_ERR("stat copy_file");
         return;
     }
-    FILE* dest = fopen(dest_path, "wb");
+
+    FILE* src = fopen(src_path, "rb");
+    if(src == NULL){
+        LOG_ERR("fopen src copy_file");
+        return;
+    }
+
+    FILE* dest = fopen(dest_path, "wb"); 
     if(dest == NULL){
-        LOG_ERR("fopen dest");
+        LOG_ERR("fopen dest copy_file");
         fclose(src);
         return;
     }
@@ -30,6 +37,18 @@ void copy_file(const char* src_path, const char* dest_path){
 
     fclose(src);
     fclose(dest);
+
+    if(chmod(dest_path, st.st_mode) == -1){
+        LOG_ERR("chmod copy_file");
+    }
+
+    struct utimbuf times = {
+        .actime  = st.st_atime,   
+        .modtime = st.st_mtime    
+    };
+    if (utime(dest_path, &times) == -1) {
+        LOG_ERR("utime copy_file");
+    }
 }
 
 void copy_symlink(const char* src_path, const char* dest_path){
@@ -43,7 +62,7 @@ void copy_symlink(const char* src_path, const char* dest_path){
 
     unlink(dest_path); 
 
-    if (symlink(link_target, dest_path) == -1) {
+    if (symlink(link_target, dest_path) == -1) { 
         LOG_ERR("symlink");
     }
 }
@@ -77,7 +96,7 @@ void copy(const char* src_dir, const char* dest_dirs[], int dest_count){
 
                     if (new_dest_dirs[i] == NULL) continue;
 
-                    ensure_dir_exists(new_dest_dirs[i]);
+                    ensure_dir_exists(new_dest_dirs[i], st);
                 } //create corresponding directories in each destination
 
                 copy(src_path, new_dest_dirs, dest_count);
@@ -122,10 +141,15 @@ void add(int argc, char** argv){
     }
 
     const char* src_dir = argv[1];
+    struct stat st;
+    if(stat(src_dir, &st) == -1){
+        LOG_ERR("stat src_dir");
+        return;
+    }
     const char* dest_dirs[argc-2];
     for(int i = 2; i < argc; i++){
         dest_dirs[i-2] = argv[i];
-        ensure_dir_exists(dest_dirs[i-2]);
+        ensure_dir_exists(dest_dirs[i-2], st);
     }
     copy(src_dir, dest_dirs, argc-2);
 }
