@@ -1,6 +1,5 @@
 #include <string_management.h>
-#include <stdlib.h>
-#include <stdio.h>
+
 
 char* file_path(const char* dir, const char* file_name){
     size_t dir_len = strlen(dir);
