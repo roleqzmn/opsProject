@@ -58,7 +58,7 @@ void copy_symlink(const char* src_path, const char* dest_path){
         LOG_ERR("readlink");
         return;
     }
-    link_target[len] = '\0'; 
+    link_target[len] = '\0'; //TODO: get real path if needed
 
     unlink(dest_path); 
 
