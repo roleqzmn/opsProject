@@ -12,7 +12,7 @@ int ensure_dir_exists(const char* path, struct stat st){
         }
     }
     if(stat(path, &_st) == -1){
-        if(mkdir(path, st.st_mode) == -1){ //TODO: implement recursive directory creation
+        if(mkdir(path, st.st_mode) == -1){ //TODO: implement recursive directory creation and clearing the directory
             LOG_ERR("mkdir");
             return -1;
         }
@@ -62,15 +62,20 @@ void copy_file(const char* src_path, const char* dest_path){
     }
 }
 
-void copy_symlink(const char* src_path, const char* dest_path){
+void copy_symlink(const char* src_dir, const char* src_path, const char* dest_path){
     char link_target[PATH_MAX];
     ssize_t len = readlink(src_path, link_target, sizeof(link_target) - 1);
     if (len == -1) {
         LOG_ERR("readlink");
         return;
     }
-    link_target[len] = '\0'; //TODO: get real path if needed
-
+    link_target[len] = '\0'; 
+    char * same_folder_target = strstr(link_target, src_dir);
+    if(same_folder_target != NULL){
+        char new_target[PATH_MAX];
+        snprintf(new_target, sizeof(new_target), "%s%s", dest_path, same_folder_target + strlen(src_dir));
+        strcpy(link_target, new_target);
+    }
     unlink(dest_path); 
 
     
@@ -79,7 +84,7 @@ void copy_symlink(const char* src_path, const char* dest_path){
     }
 }
 
-void copy(const char* src_dir, const char* dest_dirs[], int dest_count){
+void backup(const char* src_dir, const char* dest_dirs[], int dest_count){
     DIR* dir = opendir(src_dir);
     if(dir == NULL){
         LOG_ERR("opendir");
@@ -114,7 +119,7 @@ void copy(const char* src_dir, const char* dest_dirs[], int dest_count){
                     };
                 } //create corresponding directories in each destination
 
-                copy(src_path, new_dest_dirs, dest_count);
+                backup(src_path, new_dest_dirs, dest_count);
 
                 for(int i = 0; i < dest_count; i++){
                     free(new_dest_dirs[i]);
@@ -139,7 +144,7 @@ void copy(const char* src_dir, const char* dest_dirs[], int dest_count){
                     free(dest_path);
                     continue;
                 }
-                copy_symlink(src_path, dest_path);
+                copy_symlink(src_dir, src_path, dest_path);
                 free(dest_path);
             }
         }
