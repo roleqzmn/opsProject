@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include <copy_lib.h>
 #include <dirent.h>
 #include <sys/types.h>
@@ -8,6 +10,10 @@
 #include <string_management.h>
 #include <linux/limits.h>
 #include <utime.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <libgen.h>
 
 int ensure_dir_exists(const char* path, mode_t mode) {
     struct stat _st;
@@ -112,7 +118,7 @@ void copy_symlink(const char* src_dir, const char* src_path, const char* dest_pa
     }
 }
 
-void backup_copy(const char* src_dir, const char* dest_dirs[], int dest_count){
+void backup_copy(const char* src_dir, char* dest_dirs[], int dest_count){
     DIR* dir = opendir(src_dir);
     if(dir == NULL){
         LOG_ERR("opendir");
@@ -129,14 +135,19 @@ void backup_copy(const char* src_dir, const char* dest_dirs[], int dest_count){
         struct stat st;
         if(stat(src_path, &st) == -1){
             free(src_path);
-            LOG_ERR("stat");
+            LOG_ERR("stat(may be faulty link in src)");
+            continue;
         }
         if (S_ISDIR(st.st_mode)) { //if a directory
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) { 
-                const char* new_dest_dirs[dest_count];
+                char* new_dest_dirs[dest_count];
 
                 for(int i = 0; i < dest_count; i++){
-                    new_dest_dirs[i] = file_path(dest_dirs[i], entry->d_name);
+                    if(dest_dirs[i] == NULL){
+                        new_dest_dirs[i] = NULL;
+                    } else {
+                        new_dest_dirs[i] = file_path(dest_dirs[i], entry->d_name);
+                    }
 
                     if (new_dest_dirs[i] == NULL) continue;
 
@@ -155,9 +166,9 @@ void backup_copy(const char* src_dir, const char* dest_dirs[], int dest_count){
         }
         else if (S_ISREG(st.st_mode)) {
             for(int i = 0; i < dest_count; i++){
+                if(dest_dirs[i] == NULL) continue;
                 char* dest_path = file_path(dest_dirs[i], entry->d_name);
                 if (dest_path == NULL) {
-                    free(dest_path);
                     continue;
                 }
                 copy_file(src_path, dest_path);
@@ -166,9 +177,9 @@ void backup_copy(const char* src_dir, const char* dest_dirs[], int dest_count){
         } 
         else if (S_ISLNK(st.st_mode)) {
             for(int i = 0; i < dest_count; i++){
+                if(dest_dirs[i] == NULL) continue;
                 char* dest_path = file_path(dest_dirs[i], entry->d_name);
                 if (dest_path == NULL) {
-                    free(dest_path);
                     continue;
                 }
                 copy_symlink(src_dir, src_path, dest_path);

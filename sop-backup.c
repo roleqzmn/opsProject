@@ -23,6 +23,7 @@ int main()
     struct backup_record* head = NULL;
     printf("> ");
     while(fgets(line, MAX_LINE, stdin)){
+        fflush(stdout);
         line[strcspn(line, "\n")] = '\0';
 
         if (strlen(line) == 0) {
@@ -36,20 +37,20 @@ int main()
             continue;
         }
         char* command = token;
-        
         int i=0;
         while(token!=NULL && i < MAX_ARGS-1){
-            args[i]=token;
             token=strtok(NULL, " ");
+            args[i]=token;
             i++;
+            
         }
         args[i]=NULL;
-        if(strcmp(token, "exit")==0){
+        if(strcmp(command, "exit")==0){
             printf("Exiting...\n");
             exit_backup(head);
             break;
         }
-        else if(strcmp(token, "add")==0){
+        else if(strcmp(command, "add")==0){
             struct backup_record* new_record = malloc(sizeof(struct backup_record));
             if(new_record == NULL){
                 LOG_ERR("malloc");
@@ -70,7 +71,7 @@ int main()
                 add(i, args);
             }
         }
-        else if(strcmp(token, "help")==0){
+        else if(strcmp(command, "help")==0){
             printf("Available commands:\n");
             printf("add <source_directory> <destination_directory1> <destination_directory2> ... - Adds a directory to backup\n");
             printf("exit - Exits the program, terminating all backup processes\n");
