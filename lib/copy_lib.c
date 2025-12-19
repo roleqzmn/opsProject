@@ -1,22 +1,42 @@
 #include <copy_lib.h>
 
 
-int ensure_dir_exists(const char* path, struct stat st){
+int ensure_dir_exists(const char* path, mode_t mode) {
     struct stat _st;
+    if(mode=0){
+        mode=0755;
+    }
     if(stat(path, &_st) == 0){
-        if(S_ISDIR(_st.st_mode)){
-            return 0; 
-        } else {
-            LOG_ERR("ensure_dir_exists: path exists and is not a directory");
+        if(!S_ISDIR(_st.st_mode)){
+            LOG_ERR("ensure_dir_exists: path exists but is not a directory");
+            return -1;
+        }
+        return 0;
+    } 
+    if(errno != ENOENT) {
+        LOG_ERR("ensure_dir_exists stat");
+        return -1;
+    }
+
+    char* path_cp = strdup(path);
+    if (path_cp == NULL) {
+        LOG_ERR("ensure_dir_exists strdup");
+        return -1;
+    }
+    char* parent_dir = dirname(path_cp);
+    if (strcmp(parent_dir, ".") != 0 && strcmp(parent_dir, "/") != 0) {
+        if (ensure_dir_exists(parent_dir, mode) == -1) {
+            free(path_cp);
             return -1;
         }
     }
-    if(stat(path, &_st) == -1){
-        if(mkdir(path, st.st_mode) == -1){ //TODO: implement recursive directory creation and clearing the directory
-            LOG_ERR("mkdir");
-            return -1;
-        }
-    } 
+
+    free(path_cp);
+    
+    if (mkdir(path, mode) == -1 && errno != EEXIST) {
+        LOG_ERR("ensure_dir_exists mkdir");
+        return -1;
+    }
     return 0;
 }
 
@@ -113,7 +133,7 @@ void backup(const char* src_dir, const char* dest_dirs[], int dest_count){
 
                     if (new_dest_dirs[i] == NULL) continue;
 
-                    if(ensure_dir_exists(new_dest_dirs[i], st)==-1){
+                    if(ensure_dir_exists(new_dest_dirs[i], st.st_mode)==-1){
                         free((void*)new_dest_dirs[i]);
                         continue;
                     };

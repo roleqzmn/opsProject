@@ -24,10 +24,20 @@ void add(int argc, char** argv){
             dest_dirs[i-2] = NULL;
             continue;
         }
-        if(ensure_dir_exists(dest_dirs[i-2], st) == -1){
+        if(ensure_dir_exists(dest_dirs[i-2], st.st_mode) == -1){
             LOG_ERR("ensure_dir_exists");
             dest_dirs[i-2] = NULL;
         }
     }
     backup(src_dir, dest_dirs, argc-2);
+}
+
+void exit(struct backup_record* head){
+    struct backup_record* current = head;
+            while(current != NULL){
+                struct backup_record* temp = current;
+                kill(current->pid, SIGTERM);
+                current = current->next;
+                free(temp);
+            }
 }
