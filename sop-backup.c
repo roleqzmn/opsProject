@@ -14,6 +14,7 @@
 #define MAX_ARGS 100
 
 
+
 int main()
 {
     char line[MAX_LINE];
@@ -45,14 +46,38 @@ int main()
         args[i]=NULL;
         if(strcmp(token, "exit")==0){
             printf("Exiting...\n");
-            exit(head);
+            exit_backup(head);
             break;
         }
         else if(strcmp(token, "add")==0){
-            add(i, args);
+            struct backup_record* new_record = malloc(sizeof(struct backup_record));
+            if(new_record == NULL){
+                LOG_ERR("malloc");
+                printf("failed to add backup\n> ");
+                continue;
+            }
+            new_record->next = head;
+            head = new_record;
+            new_record->pid = fork();
+            if(new_record->pid == -1){
+                LOG_ERR("fork");
+                printf("failed to add backup\n> ");
+                head = new_record->next;
+                free(new_record);
+                continue;
+            }
+            if(new_record->pid == 0){ 
+                add(i, args);
+            }
+        }
+        else if(strcmp(token, "help")==0){
+            printf("Available commands:\n");
+            printf("add <source_directory> <destination_directory1> <destination_directory2> ... - Adds a directory to backup\n");
+            printf("exit - Exits the program, terminating all backup processes\n");
+            printf("help - Displays this help message\n");
         }
         else{
-            printf(">Unknown command: %s\n", command);
+            printf("Unknown command: %s\n", command);
         }
         printf("\n> ");
     }

@@ -1,9 +1,17 @@
 #include <copy_lib.h>
-
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <dirent.h>
+#include <string_management.h>
+#include <linux/limits.h>
+#include <utime.h>
 
 int ensure_dir_exists(const char* path, mode_t mode) {
     struct stat _st;
-    if(mode=0){
+    if(mode==0){
         mode=0755;
     }
     if(stat(path, &_st) == 0){
@@ -32,7 +40,7 @@ int ensure_dir_exists(const char* path, mode_t mode) {
     }
 
     free(path_cp);
-    
+
     if (mkdir(path, mode) == -1 && errno != EEXIST) {
         LOG_ERR("ensure_dir_exists mkdir");
         return -1;
@@ -104,7 +112,7 @@ void copy_symlink(const char* src_dir, const char* src_path, const char* dest_pa
     }
 }
 
-void backup(const char* src_dir, const char* dest_dirs[], int dest_count){
+void backup_copy(const char* src_dir, const char* dest_dirs[], int dest_count){
     DIR* dir = opendir(src_dir);
     if(dir == NULL){
         LOG_ERR("opendir");
@@ -114,7 +122,6 @@ void backup(const char* src_dir, const char* dest_dirs[], int dest_count){
     while((entry = readdir(dir)) != NULL){
         char* src_path = file_path(src_dir, entry->d_name);
         if (src_path == NULL) {
-            free(src_path);
             continue;
         }
 
@@ -139,7 +146,7 @@ void backup(const char* src_dir, const char* dest_dirs[], int dest_count){
                     };
                 } //create corresponding directories in each destination
 
-                backup(src_path, new_dest_dirs, dest_count);
+                backup_copy(src_path, new_dest_dirs, dest_count);
 
                 for(int i = 0; i < dest_count; i++){
                     free(new_dest_dirs[i]);

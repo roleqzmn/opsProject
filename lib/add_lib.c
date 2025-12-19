@@ -1,6 +1,7 @@
 #include <add_lib.h>
-
-
+#include <signal.h>     
+#include <sys/types.h>
+#include <copy_lib.h>
 
 
 void add(int argc, char** argv){
@@ -29,10 +30,10 @@ void add(int argc, char** argv){
             dest_dirs[i-2] = NULL;
         }
     }
-    backup(src_dir, dest_dirs, argc-2);
+    backup_copy(src_dir, dest_dirs, argc-2);
 }
 
-void exit(struct backup_record* head){
+void exit_backup(struct backup_record* head){
     struct backup_record* current = head;
             while(current != NULL){
                 struct backup_record* temp = current;
