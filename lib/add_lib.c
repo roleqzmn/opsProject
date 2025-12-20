@@ -6,41 +6,23 @@
     #include <copy_lib.h>
 
 
-    void add(int argc, char** argv){
-        if(argc < 2){
-            LOG_ERR("argc");
-            return;
-        }
-
-        if(argv[0] == NULL){
-            LOG_ERR("argv[0] is NULL");
-            return;
-        }
-
-        const char* src_dir = argv[0];
+    void add(char* src_dir, char* dest_dir){
         struct stat st;
         if(stat(src_dir, &st) == -1 || (stat(src_dir, &st) == 0 && !S_ISDIR(st.st_mode))){
             LOG_ERR("src_dir");
-            return;
+            exit(EXIT_FAILURE);
         }
-        char* dest_dirs[argc-1];
-        for(int i = 1; i < argc; i++){
-            dest_dirs[i-1] = argv[i];
-            if(dest_dirs[i-1] == NULL) continue;
-            if(strcmp(dest_dirs[i-1], src_dir) == 0){
-                if(argc <=3) return;
-                LOG_ERR("add: destination directory cannot be the same as source directory");
-                dest_dirs[i-1] = NULL;
-                continue;
-            }
-            if(ensure_dir_exists(dest_dirs[i-1], st.st_mode) == -1){
-                LOG_ERR("ensure_dir_exists");
-                dest_dirs[i-1] = NULL;
-            } else {
-                clear_directory(dest_dirs[i-1]);
-            }
+        if(strcmp(dest_dir, src_dir) == 0){
+            LOG_ERR("add: destination directory cannot be the same as source directory");
+            exit(EXIT_FAILURE);
         }
-        backup_copy(src_dir, dest_dirs, argc-1);
+        if(ensure_dir_exists(dest_dir, st.st_mode) == -1){
+            LOG_ERR("ensure_dir_exists");
+            exit(EXIT_FAILURE);
+        } else {
+            clear_directory(dest_dir);
+        }
+        backup_copy(src_dir, dest_dir);
     }
 
     void exit_backup(struct backup_record* head){
@@ -58,10 +40,7 @@
         while(current != NULL){
             printf("Backup PID: %d\n", current->pid);
             printf("Source Path: %s\n", current->src_path);
-            printf("Destination Paths:");
-            for(int i = 0; i < MAX_ARGS && current->dest_paths[i] != NULL; i++){
-                printf("  %s", current->dest_paths[i]);
-            }
+            printf("Destination Path: %s\n", current->dest_path);
             printf("\n");
             current = current->next;
         }

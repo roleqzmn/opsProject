@@ -13,23 +13,6 @@
 #define MAX_LINE 4096
 #define MAX_ARGS 100
 
-char* expand_tilde(const char* path) {
-    if (path && path[0] == '~' && path[1] == '/') {
-        const char* home = getenv("HOME");
-        if (home) {
-            size_t home_len = strlen(home);
-            size_t path_len = strlen(path);
-            char* expanded = malloc(home_len + path_len); // +1 for null, but path has /, so ok
-            if (expanded) {
-                strcpy(expanded, home);
-                strcpy(expanded + home_len, path + 1);
-                return expanded;
-            }
-        }
-    }
-    return path ? strdup(path) : NULL;
-}
-
 
 
 int main()
@@ -68,34 +51,29 @@ int main()
             break;
         }
         else if(strcmp(command, "add")==0){
-            // Expand ~ in paths
-            for(int j = 0; j < i; j++){
-                if(args[j]){
-                    char* expanded = expand_tilde(args[j]);
-                    if(expanded != args[j]){ // if expanded, free old and set new
-                        free(args[j]);
-                        args[j] = expanded;
-                    }
+            char* src_dir = args[0];
+            for(int j=1; j<i-1; j++){
+                struct backup_record* new_record = malloc(sizeof(struct backup_record));
+                if(new_record == NULL){
+                    LOG_ERR("malloc");
+                    printf("failed to add backup\n> ");
+                    continue;
                 }
-            }
-            struct backup_record* new_record = malloc(sizeof(struct backup_record));
-            if(new_record == NULL){
-                LOG_ERR("malloc");
-                printf("failed to add backup\n> ");
-                continue;
-            }
-            new_record->next = head;
-            head = new_record;
-            new_record->pid = fork();
-            if(new_record->pid == -1){
-                LOG_ERR("fork");
-                printf("failed to add backup\n> ");
-                head = new_record->next;
-                free(new_record);
-                continue;
-            }
-            if(new_record->pid == 0){ 
-                add(i, args);
+                new_record->next = head;
+                head = new_record;
+                strncpy(new_record->src_path, src_dir, PATH_MAX);
+                strncpy(new_record->dest_path, args[j], PATH_MAX);
+                new_record->pid = fork();
+                if(new_record->pid == -1){
+                    LOG_ERR("fork");
+                    printf("failed to add backup\n> ");
+                    head = new_record->next;
+                    free(new_record);
+                    continue;
+                }
+                if(new_record->pid == 0){ 
+                    add(src_dir, args[j]);
+                }
             }
         }
         else if(strcmp(command, "help")==0){

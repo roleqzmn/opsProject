@@ -159,7 +159,7 @@ void copy_symlink(const char* src_dir, const char* src_path, const char* dest_pa
     }
 }
 
-void backup_copy(const char* src_dir, char* dest_dirs[], int dest_count){
+void backup_copy(const char* src_dir, char* dest_dir){
     DIR* dir = opendir(src_dir);
     if(dir == NULL){
         LOG_ERR("opendir");
@@ -171,7 +171,10 @@ void backup_copy(const char* src_dir, char* dest_dirs[], int dest_count){
         if (src_path == NULL) {
             continue;
         }
-
+        char* dest_path = file_path(dest_dir, entry->d_name);
+        if (dest_path == NULL) {
+            continue;
+        }
 
         struct stat st;
         if(lstat(src_path, &st) == -1){
@@ -181,54 +184,21 @@ void backup_copy(const char* src_dir, char* dest_dirs[], int dest_count){
         }
         if (S_ISDIR(st.st_mode)) { 
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) { 
-                char* new_dest_dirs[dest_count];
-
-                for(int i = 0; i < dest_count; i++){
-                    if(dest_dirs[i] == NULL){
-                        new_dest_dirs[i] = NULL;
-                    } else {
-                        new_dest_dirs[i] = file_path(dest_dirs[i], entry->d_name);
-                    }
-
-                    if (new_dest_dirs[i] == NULL) continue;
-
-                    if(ensure_dir_exists(new_dest_dirs[i], st.st_mode)==-1){
-                        free((void*)new_dest_dirs[i]);
-                        continue;
-                    };
-                } 
-
-                backup_copy(src_path, new_dest_dirs, dest_count);
-
-                for(int i = 0; i < dest_count; i++){
-                    free(new_dest_dirs[i]);
+                if(ensure_dir_exists(dest_path, st.st_mode)==-1){
+                    free((void*)dest_path);
+                    continue;
                 }
+                backup_copy(src_path, dest_path);
             }
         }
         else if (S_ISREG(st.st_mode)) {
-            for(int i = 0; i < dest_count; i++){
-                if(dest_dirs[i] == NULL) continue;
-                char* dest_path = file_path(dest_dirs[i], entry->d_name);
-                if (dest_path == NULL) {
-                    continue;
-                }
-                copy_file(src_path, dest_path);
-                free(dest_path);
-            }
+            copy_file(src_path, dest_path);
         } 
-        else if (S_ISLNK(st.st_mode)) {
-            for(int i = 0; i < dest_count; i++){
-                if(dest_dirs[i] == NULL) continue;
-                char* dest_path = file_path(dest_dirs[i], entry->d_name);
-                if (dest_path == NULL) {
-                    continue;
-                }
-                copy_symlink(src_dir, src_path, dest_path);
-                free(dest_path);
-            }
+        else if (S_ISLNK(st.st_mode)) {  
+            copy_symlink(src_dir, src_path, dest_path);
         }
+        free(dest_path);
         free(src_path);
-        
     }
     closedir(dir);
 }
