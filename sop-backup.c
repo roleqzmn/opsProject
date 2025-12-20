@@ -13,7 +13,15 @@
 #define MAX_LINE 4096
 #define MAX_ARGS 100
 
-
+int ensure_new_backup(char* src_dir, char* dest_dir, struct backup_record** head){
+    while(*head != NULL){
+        if(strcmp((*head)->src_path, src_dir) == 0 && strcmp((*head)->dest_path, dest_dir) == 0){
+            return -1; 
+        }
+        head = &((*head)->next);
+    }
+    return 0;
+}
 
 int main()
 {
@@ -53,6 +61,10 @@ int main()
         else if(strcmp(command, "add")==0){
             char* src_dir = args[0];
             for(int j=1; j<i-1; j++){
+                if(ensure_new_backup(src_dir, args[j], &head) == -1){
+                    printf("Backup from %s to %s already exists\n> ", src_dir, args[j]);
+                    continue;
+                }
                 struct backup_record* new_record = malloc(sizeof(struct backup_record));
                 if(new_record == NULL){
                     LOG_ERR("malloc");
@@ -60,6 +72,9 @@ int main()
                     continue;
                 }
                 new_record->next = head;
+                if(head != NULL)
+                    head->prev = new_record;
+                new_record->prev = NULL;
                 head = new_record;
                 strncpy(new_record->src_path, src_dir, PATH_MAX);
                 strncpy(new_record->dest_path, args[j], PATH_MAX);
@@ -73,15 +88,26 @@ int main()
                 }
                 if(new_record->pid == 0){ 
                     add(src_dir, args[j]);
+                    while(1) {
+                        sleep(1);
+                    } //placeholder before watcher
                 }
+            }
+        }
+        else if(strcmp(command, "end")==0){
+            char* src_dir = args[0];
+            for(int j=1; j<i-1; j++){
+                char* dest_dir = args[j];
+                end_backup(src_dir, dest_dir, &head);
             }
         }
         else if(strcmp(command, "help")==0){
             printf("Available commands:\n");
             printf("add <source_directory> <destination_directory1> <destination_directory2> ... - Adds a directory to backup\n");
+            printf("end <source_directory> <destination_directory1> <destination_directory2> ... - Stops a backup process and removes it from the list\n");
             printf("exit - Exits the program, terminating all backup processes\n");
             printf("list - Lists all current backups\n");
-            printf("help - U can see rn on screen\n");       
+            printf("help - You can see right now on the screen\n");       
         }
         else if(strcmp(command, "list")==0){
             list_backups(head);

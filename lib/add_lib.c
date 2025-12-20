@@ -45,3 +45,26 @@
             current = current->next;
         }
     }
+
+    void end_backup(char* src_dir, char* dest_dir, struct backup_record** head){
+        struct backup_record* current = *head;
+        while(current != NULL){
+            if(strcmp(current->src_path, src_dir) == 0 && strcmp(current->dest_path, dest_dir) == 0){
+                kill(current->pid, SIGTERM);
+                if(current->prev != NULL){
+                    current->prev->next = current->next;
+                } else {
+                    *head = current->next;
+                }
+                if(current->next != NULL){
+                    current->next->prev = current->prev;
+                }
+                if(*head != NULL){
+                    (*head)->prev = NULL;
+                }
+                free(current);
+                return;
+            }
+            current = current->next;
+        }
+    }

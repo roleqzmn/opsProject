@@ -19,6 +19,7 @@ typedef struct backup_record{
     char dest_path[PATH_MAX];
     pid_t pid;
     struct backup_record* next;
+    struct backup_record* prev;
 } backup_record;
 
 void add(char* src_dir, char* dest_dir); //adds a directory to backup
@@ -26,6 +27,8 @@ void add(char* src_dir, char* dest_dir); //adds a directory to backup
 void exit_backup(struct backup_record* head); //exits the program, terminating all backup processes
 
 void list_backups(struct backup_record* head); //lists all current backups
+
+void end_backup(char* src_dir, char* dest_dir, struct backup_record** head); //stops a backup process and removes it from the list
 
 
 
