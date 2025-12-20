@@ -13,6 +13,23 @@
 #define MAX_LINE 4096
 #define MAX_ARGS 100
 
+char* expand_tilde(const char* path) {
+    if (path && path[0] == '~' && path[1] == '/') {
+        const char* home = getenv("HOME");
+        if (home) {
+            size_t home_len = strlen(home);
+            size_t path_len = strlen(path);
+            char* expanded = malloc(home_len + path_len); // +1 for null, but path has /, so ok
+            if (expanded) {
+                strcpy(expanded, home);
+                strcpy(expanded + home_len, path + 1);
+                return expanded;
+            }
+        }
+    }
+    return path ? strdup(path) : NULL;
+}
+
 
 
 int main()
@@ -51,6 +68,16 @@ int main()
             break;
         }
         else if(strcmp(command, "add")==0){
+            // Expand ~ in paths
+            for(int j = 0; j < i; j++){
+                if(args[j]){
+                    char* expanded = expand_tilde(args[j]);
+                    if(expanded != args[j]){ // if expanded, free old and set new
+                        free(args[j]);
+                        args[j] = expanded;
+                    }
+                }
+            }
             struct backup_record* new_record = malloc(sizeof(struct backup_record));
             if(new_record == NULL){
                 LOG_ERR("malloc");
@@ -75,7 +102,11 @@ int main()
             printf("Available commands:\n");
             printf("add <source_directory> <destination_directory1> <destination_directory2> ... - Adds a directory to backup\n");
             printf("exit - Exits the program, terminating all backup processes\n");
-            printf("help - Displays this help message\n");
+            printf("list - Lists all current backups\n");
+            printf("help - U can see rn on screen\n");       
+        }
+        else if(strcmp(command, "list")==0){
+            list_backups(head);
         }
         else{
             printf("Unknown command: %s\n", command);

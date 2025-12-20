@@ -14,4 +14,6 @@ void copy_symlink(const char* src_dir, const char* src_path, const char* dest_pa
 
 void backup_copy(const char* src_dir, char* dest_dirs[], int dest_count); //copies files from src_dir to each directory in dest_dirs
 
+void clear_directory(const char* path); //removes all contents of the directory at path
+
 

@@ -25,6 +25,8 @@ void add(int argc, char** argv); //adds a directory to backup
 
 void exit_backup(struct backup_record* head); //exits the program, terminating all backup processes
 
+void list_backups(struct backup_record* head); //lists all current backups
+
 
 
 

@@ -54,6 +54,47 @@ int ensure_dir_exists(const char* path, mode_t mode) {
     return 0;
 }
 
+void clear_directory(const char* path){
+    DIR* dir=opendir(path);
+    if(dir == NULL){
+        LOG_ERR("clear_directory opendir");
+        return;
+    }
+    struct dirent* entry;
+     while((entry = readdir(dir)) != NULL){
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+        char* src_path = file_path(path, entry->d_name);
+        if (src_path == NULL) {
+            continue;
+        }
+
+        struct stat st;
+        if(lstat(src_path, &st) == -1){
+            free(src_path);
+            continue;
+        }
+        if (S_ISDIR(st.st_mode)) { 
+            clear_directory(src_path);
+            if(rmdir(src_path) == -1){
+                LOG_ERR("clear_directory rmdir");
+            }
+        }
+        else if (S_ISREG(st.st_mode)) {
+            if(remove(src_path) == -1){
+                LOG_ERR("clear_directory remove file");
+            }
+        } 
+        else if (S_ISLNK(st.st_mode)) {
+           if(unlink(src_path) == -1){
+                LOG_ERR("clear_directory unlink symlink");
+            }
+        }
+        free(src_path);
+        
+    }
+    closedir(dir);
+}
+
 void copy_file(const char* src_path, const char* dest_path){   
     struct stat st;
     if(stat(src_path, &st) == -1){
@@ -133,12 +174,12 @@ void backup_copy(const char* src_dir, char* dest_dirs[], int dest_count){
 
 
         struct stat st;
-        if(stat(src_path, &st) == -1){
+        if(lstat(src_path, &st) == -1){
             free(src_path);
-            LOG_ERR("stat(may be faulty link in src)");
+            LOG_ERR("lstat(may be faulty link in src)");
             continue;
         }
-        if (S_ISDIR(st.st_mode)) { //if a directory
+        if (S_ISDIR(st.st_mode)) { 
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) { 
                 char* new_dest_dirs[dest_count];
 
@@ -155,7 +196,7 @@ void backup_copy(const char* src_dir, char* dest_dirs[], int dest_count){
                         free((void*)new_dest_dirs[i]);
                         continue;
                     };
-                } //create corresponding directories in each destination
+                } 
 
                 backup_copy(src_path, new_dest_dirs, dest_count);
 

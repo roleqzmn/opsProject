@@ -36,6 +36,8 @@
             if(ensure_dir_exists(dest_dirs[i-1], st.st_mode) == -1){
                 LOG_ERR("ensure_dir_exists");
                 dest_dirs[i-1] = NULL;
+            } else {
+                clear_directory(dest_dirs[i-1]);
             }
         }
         backup_copy(src_dir, dest_dirs, argc-1);
@@ -49,4 +51,18 @@
                     current = current->next;
                     free(temp);
                 }
+    }
+
+    void list_backups(struct backup_record* head){
+        struct backup_record* current = head;
+        while(current != NULL){
+            printf("Backup PID: %d\n", current->pid);
+            printf("Source Path: %s\n", current->src_path);
+            printf("Destination Paths:");
+            for(int i = 0; i < MAX_ARGS && current->dest_paths[i] != NULL; i++){
+                printf("  %s", current->dest_paths[i]);
+            }
+            printf("\n");
+            current = current->next;
+        }
     }
