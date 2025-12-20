@@ -7,7 +7,7 @@
 #include <add_lib.h>
 #include <string.h>
 #include <add_lib.h>
-
+#include <dir_watcher.h>
 
 #define ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), exit(EXIT_FAILURE))
 #define MAX_LINE 4096
@@ -29,6 +29,8 @@ int main()
     char *args[MAX_ARGS];
     char *token;
     struct backup_record* head = NULL;
+    struct WatchMap watch_map;
+    watch_map.watch_count = 0;
     printf("> ");
     while(fgets(line, MAX_LINE, stdin)){
         fflush(stdout);
@@ -88,9 +90,8 @@ int main()
                 }
                 if(new_record->pid == 0){ 
                     add(src_dir, args[j]);
-                    while(1) {
-                        sleep(1);
-                    } //placeholder before watcher
+                    watch_directory(&watch_map, src_dir, args[j]);
+                    exit(EXIT_SUCCESS);
                 }
             }
         }
@@ -103,8 +104,8 @@ int main()
         }
         else if(strcmp(command, "help")==0){
             printf("Available commands:\n");
-            printf("add <source_directory> <destination_directory1> <destination_directory2> ... - Adds a directory to backup\n");
-            printf("end <source_directory> <destination_directory1> <destination_directory2> ... - Stops a backup process and removes it from the list\n");
+            printf("add <source_directory> <destination_directory1> <destination_directory2> ... - Adds directories to backup\n");
+            printf("end <source_directory> <destination_directory1> <destination_directory2> ... - Stops backup processes\n");
             printf("exit - Exits the program, terminating all backup processes\n");
             printf("list - Lists all current backups\n");
             printf("help - You can see right now on the screen\n");       
