@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <libgen.h>
+#include <add_lib.h>
 
 int ensure_dir_exists(const char* path, mode_t mode) {
     struct stat _st;
@@ -159,7 +160,7 @@ void copy_symlink(const char* src_dir, const char* src_path, const char* dest_pa
     }
 }
 
-void backup_copy(const char* src_dir, char* dest_dir){
+void backup_copy(const char* src_dir, char* dest_dir, struct backup_record* record){
     DIR* dir = opendir(src_dir);
     if(dir == NULL){
         LOG_ERR("opendir");
@@ -182,19 +183,19 @@ void backup_copy(const char* src_dir, char* dest_dir){
             LOG_ERR("lstat(may be faulty link in src)");
             continue;
         }
-        if (S_ISDIR(st.st_mode)) { 
+        if (S_ISDIR(st.st_mode) && st.st_mtime > record->last_backup) { 
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) { 
                 if(ensure_dir_exists(dest_path, st.st_mode)==-1){
                     free((void*)dest_path);
                     continue;
                 }
-                backup_copy(src_path, dest_path);
+                backup_copy(src_path, dest_path, record);
             }
         }
-        else if (S_ISREG(st.st_mode)) {
+        else if (S_ISREG(st.st_mode) && st.st_mtime > record->last_backup) {
             copy_file(src_path, dest_path);
         } 
-        else if (S_ISLNK(st.st_mode)) {  
+        else if (S_ISLNK(st.st_mode) && st.st_mtime > record->last_backup) {  
             copy_symlink(src_dir, src_path, dest_path);
         }
         free(dest_path);

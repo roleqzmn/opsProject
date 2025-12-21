@@ -79,6 +79,7 @@ int main()
                 if(head != NULL)
                     head->prev = new_record;
                 new_record->prev = NULL;
+                new_record->last_backup = 0;
                 head = new_record;
                 strncpy(new_record->src_path, src_dir, PATH_MAX);
                 strncpy(new_record->dest_path, args[j], PATH_MAX);
@@ -105,6 +106,22 @@ int main()
                 char* dest_dir = args[j];
                 end_backup(src_dir, dest_dir, &head);
             }
+        }
+        else if(strcmp(command, "restore")==0){
+            if(i != 2){
+                printf("Invalid ammount of arguments\n> ");
+                continue;
+            }
+            struct backup_record* current = head;
+            char* src_dir = args[0];
+            char* dest_dir = args[1];
+            while(current != NULL){
+                if(strcmp(current->src_path, src_dir) == 0 && strcmp(current->dest_path, dest_dir) == 0){
+                    backup_copy(dest_dir, src_dir, current);
+                    break;
+                }
+                current = current->next;
+            } //bez sensu na razie do przepisania jutro
         }
         else if(strcmp(command, "help")==0){
             printf("Available commands:\n");

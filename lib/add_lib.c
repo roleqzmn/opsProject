@@ -33,7 +33,7 @@
         } else {
             clear_directory(dest_dir);
         }
-        backup_copy(src_dir_real, dest_dir);
+        backup_copy(src_dir_real, dest_dir, process);
         free(src_dir_real);
         return 0;
         process->last_backup = time(NULL);
