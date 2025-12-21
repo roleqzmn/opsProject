@@ -22,6 +22,7 @@ typedef struct backup_record{
     struct backup_record* next;
     struct backup_record* prev;
     time_t last_backup;
+    int pipe_fd;
 } backup_record;
 
 int add(char* src_dir, char* dest_dir, struct backup_record* process); //adds a directory to backup

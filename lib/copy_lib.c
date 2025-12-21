@@ -203,3 +203,47 @@ void backup_copy(const char* src_dir, char* dest_dir, struct backup_record* reco
     }
     closedir(dir);
 }
+
+void restore_copy(const char* src_dir, char* dest_dir, struct backup_record* record){
+    DIR* dir = opendir(src_dir);
+    if(dir == NULL){
+        LOG_ERR("opendir");
+        return;
+    }
+    struct dirent* entry;
+    while((entry = readdir(dir)) != NULL){
+        char* src_path = file_path(src_dir, entry->d_name);
+        if (src_path == NULL) {
+            continue;
+        }
+        char* dest_path = file_path(dest_dir, entry->d_name);
+        if (dest_path == NULL) {
+            continue;
+        }
+
+        struct stat st;
+        if(lstat(src_path, &st) == -1){
+            free(src_path);
+            LOG_ERR("lstat(may be faulty link in src)");
+            continue;
+        }
+        if (S_ISDIR(st.st_mode) && st.st_mtime > record->last_backup) { 
+            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) { 
+                if(ensure_dir_exists(dest_path, st.st_mode)==-1){
+                    free((void*)dest_path);
+                    continue;
+                }
+                backup_copy(src_path, dest_path, record);
+            }
+        }
+        else if (S_ISREG(st.st_mode) && st.st_mtime > record->last_backup) {
+            copy_file(src_path, dest_path);
+        } 
+        else if (S_ISLNK(st.st_mode) && st.st_mtime > record->last_backup) {  
+            copy_symlink(src_dir, src_path, dest_path);
+        }
+        free(dest_path);
+        free(src_path);
+    }
+    closedir(dir);
+}

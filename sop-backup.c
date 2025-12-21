@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -8,10 +9,18 @@
 #include <string.h>
 #include <add_lib.h>
 #include <dir_watcher.h>
+#include <copy_lib.h>
+#include <signal.h>
 
 #define ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), exit(EXIT_FAILURE))
 #define MAX_LINE 4096
 #define MAX_ARGS 100
+
+volatile sig_atomic_t should_exit = 0;
+
+static void exit_handler(int sig) {
+    should_exit = 1;
+}
 
 int ensure_new_backup(char* src_dir, char* dest_dir, struct backup_record** head){
     while(*head != NULL){
@@ -25,15 +34,36 @@ int ensure_new_backup(char* src_dir, char* dest_dir, struct backup_record** head
 
 int main()
 {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGTERM);
+    sigaddset(&mask, SIGINT);
+    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
+        ERR("sigprocmask");
+    }
+
+    struct sigaction sa;
+    sa.sa_handler = exit_handler;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+
+    if (sigaction(SIGINT, &sa, NULL) == -1 ||
+        sigaction(SIGTERM, &sa, NULL) == -1) {
+        ERR("sigaction");
+    }
+
     char line[MAX_LINE];
     char *args[MAX_ARGS];
     char *token;
     struct backup_record* head = NULL;
     printf("> ");
-    while(fgets(line, MAX_LINE, stdin)){
+
+    while(fgets(line, MAX_LINE, stdin) && !should_exit){
         fflush(stdout);
         line[strcspn(line, "\n")] = '\0';
 
+        fflush(stdout);
+        line[strcspn(line, "\n")] = '\0';
         if (strlen(line) == 0) {
             printf("\n> ");
             continue;
@@ -69,34 +99,48 @@ int main()
                     printf("Destination directory %s cannot be a subdirectory of source directory %s\n> ", args[j], src_dir);
                     continue;
                 }
+
                 struct backup_record* new_record = malloc(sizeof(struct backup_record));
                 if(new_record == NULL){
                     LOG_ERR("malloc");
                     printf("failed to add backup\n> ");
                     continue;
                 }
+
+                int pipefd[2];
+                if (pipe(pipefd) == -1) {
+                    ERR("pipe");
+                }
+
                 new_record->next = head;
                 if(head != NULL)
                     head->prev = new_record;
                 new_record->prev = NULL;
                 new_record->last_backup = 0;
                 head = new_record;
+                new_record->pipe_fd = pipefd[0];
                 strncpy(new_record->src_path, src_dir, PATH_MAX);
                 strncpy(new_record->dest_path, args[j], PATH_MAX);
                 new_record->pid = fork();
+
                 if(new_record->pid == -1){
                     LOG_ERR("fork");
                     printf("failed to add backup\n> ");
                     head = new_record->next;
                     free(new_record);
+                    close(pipefd[1]);
                     continue;
                 }
                 if(new_record->pid == 0){ 
+                    close(pipefd[0]);
                     if(add(src_dir, args[j], head)== -1){
                         exit(EXIT_FAILURE);
                     }
-                    watch_directory(src_dir, args[j], head);
+                    watch_directory(src_dir, args[j], head, pipefd[1]);
+                    close(pipefd[1]);
                     exit(EXIT_SUCCESS);
+                }else {
+                    close(pipefd[1]);
                 }
             }
         }
@@ -117,16 +161,17 @@ int main()
             char* dest_dir = args[1];
             while(current != NULL){
                 if(strcmp(current->src_path, src_dir) == 0 && strcmp(current->dest_path, dest_dir) == 0){
-                    backup_copy(dest_dir, src_dir, current);
+                    restore_copy(dest_dir, src_dir, current);
                     break;
                 }
                 current = current->next;
-            } //bez sensu na razie do przepisania jutro
+            }
         }
         else if(strcmp(command, "help")==0){
             printf("Available commands:\n");
             printf("add <source_directory> <destination_directory1> <destination_directory2> ... - Adds directories to backup\n");
             printf("end <source_directory> <destination_directory1> <destination_directory2> ... - Stops backup processes\n");
+            printf("restore <source_directory> <destination_directory> - Restores files from destination to source directory (only if there exists a backup from source to destination)\n");
             printf("exit - Exits the program, terminating all backup processes\n");
             printf("list - Lists all current backups\n");
             printf("help - You can see right now on the screen\n");       
@@ -139,5 +184,7 @@ int main()
         }
         printf("\n> ");
     }
+    printf("\nExiting...\n");
+    exit_backup(head);
     return EXIT_SUCCESS;
 }
