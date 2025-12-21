@@ -65,6 +65,10 @@ int main()
                     printf("Backup from %s to %s already exists\n> ", src_dir, args[j]);
                     continue;
                 }
+                if(strstr(args[j], src_dir) == args[j]){
+                    printf("Destination directory %s cannot be a subdirectory of source directory %s\n> ", args[j], src_dir);
+                    continue;
+                }
                 struct backup_record* new_record = malloc(sizeof(struct backup_record));
                 if(new_record == NULL){
                     LOG_ERR("malloc");
@@ -87,10 +91,10 @@ int main()
                     continue;
                 }
                 if(new_record->pid == 0){ 
-                    if(add(src_dir, args[j])==-1){
+                    if(add(src_dir, args[j], head)== -1){
                         exit(EXIT_FAILURE);
                     }
-                    watch_directory(src_dir, args[j]);
+                    watch_directory(src_dir, args[j], head);
                     exit(EXIT_SUCCESS);
                 }
             }

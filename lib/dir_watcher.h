@@ -14,6 +14,7 @@
 #include <sys/inotify.h>
 #include <copy_lib.h>
 #include <string_management.h>
+#include <add_lib.h>
 
 #define MAX_WATCHES 8192
 #define EVENT_BUF_LEN (64 * (sizeof(struct inotify_event) + NAME_MAX + 1))
@@ -36,4 +37,4 @@ void remove_from_map(struct WatchMap *map, int wd); //removes a watch descriptor
 
 void add_watcher_recursive(int notify_fd,struct WatchMap *watch_map, const char* src_dir); //adds watchers to a directory and its subdirectories
 
-void watch_directory(const char* src_dir, const char* dest_dir); //watches a directory for changes and mirrors them to the destination directory
+void watch_directory(const char* src_dir, const char* dest_dir, struct backup_record* head); //watches a directory for changes and mirrors them to the destination directory

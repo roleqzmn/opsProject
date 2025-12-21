@@ -72,7 +72,7 @@ void add_watcher_recursive(int notify_fd, struct WatchMap *watch_map, const char
 
 }
 
-void watch_directory(const char* src_dir, const char* dest_dir){
+void watch_directory(const char* src_dir, const char* dest_dir, struct backup_record* head) {
     struct WatchMap watch_map = {0};
     int notify_fd = inotify_init();
     if (notify_fd < 0) {
@@ -151,6 +151,7 @@ void watch_directory(const char* src_dir, const char* dest_dir){
 
             i += sizeof(struct inotify_event) + event->len;
         }
+        head->last_backup = time(NULL);
     }
     close(notify_fd);
 }

@@ -10,6 +10,7 @@
 #include <utime.h>
 #include <copy_lib.h>
 #include <signal.h>
+#include <time.h>
   
 #define MAX_ARGS 100
 #define ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), exit(EXIT_FAILURE))
@@ -20,9 +21,10 @@ typedef struct backup_record{
     pid_t pid;
     struct backup_record* next;
     struct backup_record* prev;
+    time_t last_backup;
 } backup_record;
 
-int add(char* src_dir, char* dest_dir); //adds a directory to backup
+int add(char* src_dir, char* dest_dir, struct backup_record* process); //adds a directory to backup
 
 void exit_backup(struct backup_record* head); //exits the program, terminating all backup processes
 

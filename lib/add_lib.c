@@ -4,7 +4,7 @@
     #include <signal.h>     
     #include <stdlib.h>
 
-    int add(char* src_dir, char* dest_dir){
+    int add(char* src_dir, char* dest_dir, struct backup_record* process){
     char* src_dir_real = realpath(src_dir, NULL);
     if (src_dir_real == NULL) {
         perror("realpath src");
@@ -36,6 +36,7 @@
         backup_copy(src_dir_real, dest_dir);
         free(src_dir_real);
         return 0;
+        process->last_backup = time(NULL);
     }
 
     void exit_backup(struct backup_record* head){
