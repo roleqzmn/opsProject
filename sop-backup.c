@@ -29,8 +29,6 @@ int main()
     char *args[MAX_ARGS];
     char *token;
     struct backup_record* head = NULL;
-    struct WatchMap watch_map;
-    watch_map.watch_count = 0;
     printf("> ");
     while(fgets(line, MAX_LINE, stdin)){
         fflush(stdout);
@@ -89,8 +87,10 @@ int main()
                     continue;
                 }
                 if(new_record->pid == 0){ 
-                    add(src_dir, args[j]);
-                    watch_directory(&watch_map, src_dir, args[j]);
+                    if(add(src_dir, args[j])==-1){
+                        exit(EXIT_FAILURE);
+                    }
+                    watch_directory(src_dir, args[j]);
                     exit(EXIT_SUCCESS);
                 }
             }

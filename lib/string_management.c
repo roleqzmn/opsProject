@@ -13,3 +13,19 @@ char* file_path(const char* dir, const char* file_name){
     strcat(path, file_name);
     return path;
 }
+
+char* replace_prefix(const char* path, const char* old_prefix, const char* new_prefix) {
+    size_t old_len = strlen(old_prefix);
+    if (strncmp(path, old_prefix, old_len) != 0) {
+        return NULL;
+    }
+    size_t new_len = strlen(new_prefix);
+    size_t rest_len = strlen(path) - old_len;
+    char* result = malloc(new_len + rest_len + 1);
+    if (result == NULL) {
+        return NULL;
+    }
+    strcpy(result, new_prefix);
+    strcat(result, path + old_len);
+    return result;
+}

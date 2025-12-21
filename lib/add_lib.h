@@ -22,7 +22,7 @@ typedef struct backup_record{
     struct backup_record* prev;
 } backup_record;
 
-void add(char* src_dir, char* dest_dir); //adds a directory to backup
+int add(char* src_dir, char* dest_dir); //adds a directory to backup
 
 void exit_backup(struct backup_record* head); //exits the program, terminating all backup processes
 
