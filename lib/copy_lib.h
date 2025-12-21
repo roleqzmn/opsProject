@@ -5,7 +5,10 @@
 #define ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), exit(EXIT_FAILURE))
 #define LOG_ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__))
 
+<<<<<<< HEAD
 struct backup_record;
+=======
+>>>>>>> a06b5222593d92bea93f5ee01704ee46a2ad3d1c
 
 int ensure_dir_exists(const char* path, mode_t mode); //ensures that a directory exists, creates it if it doesn't
 

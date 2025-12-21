@@ -203,6 +203,7 @@ void backup_copy(const char* src_dir, char* dest_dir, struct backup_record* reco
     }
     closedir(dir);
 }
+<<<<<<< HEAD
 
 void restore_copy(const char* src_dir, char* dest_dir, struct backup_record* record){
     DIR* dir = opendir(src_dir);
@@ -247,3 +248,5 @@ void restore_copy(const char* src_dir, char* dest_dir, struct backup_record* rec
     }
     closedir(dir);
 }
+=======
+>>>>>>> a06b5222593d92bea93f5ee01704ee46a2ad3d1c

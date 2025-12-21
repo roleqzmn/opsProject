@@ -99,7 +99,6 @@ int main()
                     printf("Destination directory %s cannot be a subdirectory of source directory %s\n> ", args[j], src_dir);
                     continue;
                 }
-
                 struct backup_record* new_record = malloc(sizeof(struct backup_record));
                 if(new_record == NULL){
                     LOG_ERR("malloc");

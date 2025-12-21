@@ -72,7 +72,11 @@ void add_watcher_recursive(int notify_fd, struct WatchMap *watch_map, const char
 
 }
 
+<<<<<<< HEAD
 void watch_directory(const char* src_dir, const char* dest_dir, struct backup_record* head, int pipe_fd) {
+=======
+void watch_directory(const char* src_dir, const char* dest_dir, struct backup_record* head) {
+>>>>>>> a06b5222593d92bea93f5ee01704ee46a2ad3d1c
     struct WatchMap watch_map = {0};
     int notify_fd = inotify_init();
     if (notify_fd < 0) {
@@ -152,9 +156,12 @@ void watch_directory(const char* src_dir, const char* dest_dir, struct backup_re
             i += sizeof(struct inotify_event) + event->len;
         }
         head->last_backup = time(NULL);
+<<<<<<< HEAD
         if (write(pipe_fd, &head->last_backup, sizeof(head->last_backup)) != sizeof(head->last_backup)) {
             LOG_ERR("write to pipe");
         }
+=======
+>>>>>>> a06b5222593d92bea93f5ee01704ee46a2ad3d1c
     }
     close(notify_fd);
 }

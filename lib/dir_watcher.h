@@ -37,4 +37,8 @@ void remove_from_map(struct WatchMap *map, int wd); //removes a watch descriptor
 
 void add_watcher_recursive(int notify_fd,struct WatchMap *watch_map, const char* src_dir); //adds watchers to a directory and its subdirectories
 
+<<<<<<< HEAD
 void watch_directory(const char* src_dir, const char* dest_dir, struct backup_record* head, int pipe_fd); //watches a directory for changes and mirrors them to the destination directory
+=======
+void watch_directory(const char* src_dir, const char* dest_dir, struct backup_record* head); //watches a directory for changes and mirrors them to the destination directory
+>>>>>>> a06b5222593d92bea93f5ee01704ee46a2ad3d1c

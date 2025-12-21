@@ -44,10 +44,19 @@
                 while(current != NULL){
                     struct backup_record* temp = current;
                     kill(current->pid, SIGTERM);
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> a06b5222593d92bea93f5ee01704ee46a2ad3d1c
                     usleep(500000);
                     if(waitpid(current->pid, NULL, WNOHANG) == 0){
                         kill(current->pid, SIGKILL);
                     }
+<<<<<<< HEAD
+=======
+>>>>>>> fbaa59e (test after repo corrupted)
+>>>>>>> a06b5222593d92bea93f5ee01704ee46a2ad3d1c
                     current = current->next;
                     free(temp);
                 }
