@@ -1,0 +1,5 @@
+*.o
+sop-backup
+Makefile
+launch.json
+settings.json
