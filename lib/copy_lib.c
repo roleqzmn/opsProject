@@ -171,18 +171,21 @@ void backup_copy(const char *src_dir, char *dest_dir) {
     }
     char *dest_path = file_path(dest_dir, entry->d_name);
     if (dest_path == NULL) {
+      free(src_path);
       continue;
     }
 
     struct stat st;
     if (lstat(src_path, &st) == -1) {
       free(src_path);
+      free(dest_path);
       LOG_ERR("lstat(may be faulty link in src)");
       continue;
     }
     if (S_ISDIR(st.st_mode)) {
       if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
         if (ensure_dir_exists(dest_path, st.st_mode) == -1) {
+          free(src_path);
           free((void *)dest_path);
           continue;
         }
@@ -212,6 +215,10 @@ void restore_copy(const char *src_dir, char *dest_dir) {
       continue;
     }
     char *dest_path = file_path(dest_dir, entry->d_name);
+    if (dest_path == NULL) {
+      free(backup_path);
+      continue;
+    }
 
     struct stat backup_st;
     if (lstat(backup_path, &backup_st) == -1) {

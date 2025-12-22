@@ -152,14 +152,16 @@ int main() {
                  args[j], src_dir);
           goto print_prompt;
         }
-        struct backup_record *new_record = malloc(sizeof(struct backup_record));
-        if (new_record == NULL) {
-          LOG_ERR("malloc");
-          printf("failed to add backup\n> ");
-          goto print_prompt;
-        }
+
+        struct backup_record *new_record = NULL;
 
         if (check == 0) { // if doesnt exist creating new
+          new_record = malloc(sizeof(struct backup_record));
+          if (new_record == NULL) {
+            LOG_ERR("malloc");
+            printf("failed to add backup\n> ");
+            goto print_prompt;
+          }
           new_record->next = head;
           if (head != NULL)
             head->prev = new_record;
@@ -171,21 +173,24 @@ int main() {
           strncpy(new_record->dest_path, args[j], PATH_MAX);
         }
         if (check == 1) { // if exists reusing existing
-          struct backup_record *existing = find_backup(src_dir, args[j], head);
-          if (existing == NULL) {
+          new_record = find_backup(src_dir, args[j], head);
+          if (new_record == NULL) {
             LOG_ERR("find_backup");
             printf("failed to add backup\n> ");
             goto print_prompt;
           }
-          new_record = existing;
         }
         new_record->pid = fork();
 
         if (new_record->pid == -1) {
           LOG_ERR("fork");
           printf("failed to add backup\n> ");
-          head = new_record->next;
-          free(new_record);
+          if (check == 0) {
+            head = new_record->next;
+            if (head != NULL)
+              head->prev = NULL;
+            free(new_record);
+          }
           goto print_prompt;
         }
         if (new_record->pid == 0) {

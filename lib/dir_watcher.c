@@ -27,6 +27,10 @@ void add_to_map(struct WatchMap *map, int wd, const char *path) {
   }
   map->watch_map[map->watch_count].wd = wd;
   map->watch_map[map->watch_count].path = strdup(path);
+  if (map->watch_map[map->watch_count].path == NULL) {
+    perror("strdup in add_to_map");
+    return;
+  }
   map->watch_count++;
 }
 
@@ -181,5 +185,10 @@ void watch_directory(const char *src_dir, const char *dest_dir,
     }
     head->last_backup = time(NULL);
   }
+
+  for (int i = 0; i < watch_map.watch_count; i++) {
+    free(watch_map.watch_map[i].path);
+  }
+
   close(notify_fd);
 }
