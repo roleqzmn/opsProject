@@ -72,7 +72,6 @@ int main()
             continue;
         }
 
-        // Extract command
         size_t pos = 0;
         size_t line_len = strlen(line);
         while (pos < line_len && line[pos] == ' ') pos++;
@@ -137,10 +136,6 @@ int main()
                     continue;
                 }
 
-                int pipefd[2];
-                if (pipe(pipefd) == -1) {
-                    ERR("pipe");
-                }
                 if(check==0){
                     new_record->next = head;
                     if(head != NULL)
@@ -148,7 +143,6 @@ int main()
                     new_record->prev = NULL;
                     new_record->last_backup = 0;
                     head = new_record;
-                    new_record->pipe_fd = pipefd[0];
                     new_record->ifworking = true;
                     strncpy(new_record->src_path, src_dir, PATH_MAX);
                     strncpy(new_record->dest_path, args[j], PATH_MAX);
@@ -161,7 +155,6 @@ int main()
                         continue;
                     }
                     new_record = existing;
-                    new_record->pipe_fd = pipefd[0];
                 }
                 new_record->pid = fork();
 
@@ -170,19 +163,17 @@ int main()
                     printf("failed to add backup\n> ");
                     head = new_record->next;
                     free(new_record);
-                    close(pipefd[1]);
                     continue;
                 }
                 if(new_record->pid == 0){ 
-                    close(pipefd[0]);
                     if(add(src_dir, args[j], head)== -1){
                         exit(EXIT_FAILURE);
                     }
-                    watch_directory(src_dir, args[j], head, pipefd[1]);
-                    close(pipefd[1]);
+                    watch_directory(src_dir, args[j], head);
                     exit(EXIT_SUCCESS);
                 }else {
-                    close(pipefd[1]);
+                    printf("Started backup from %s to %s with PID %d\n", src_dir, args[j], new_record->pid);
+                    fflush(stdout);
                 }
             }
         }

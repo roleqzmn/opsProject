@@ -19,22 +19,22 @@
     int add(char* src_dir, char* dest_dir, struct backup_record* process){
     char* src_dir_real = realpath(src_dir, NULL);
     if (src_dir_real == NULL) {
-        perror("realpath src");
+        LOG_ERR("realpath src");
         return -1;
     }
     struct stat st;
     if(stat(src_dir_real, &st) == -1){
-        perror("stat src");
+        LOG_ERR("stat src");
         free(src_dir_real);  
         return -1;
     }
     if(!S_ISDIR(st.st_mode)){
-        fprintf(stderr, "src is not a directory\n");
+        LOG_ERR("source is not a directory");
         free(src_dir_real);
         return -1;
     }
     if(strcmp(dest_dir, src_dir_real) == 0){
-        fprintf(stderr, "destination directory cannot be the same as source directory\n");
+            LOG_ERR("destination directory cannot be the same as source directory");
             free(src_dir_real); 
             return -1;
         }

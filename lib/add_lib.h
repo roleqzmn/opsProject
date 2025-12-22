@@ -23,7 +23,6 @@ typedef struct backup_record{
     struct backup_record* next;
     struct backup_record* prev;
     time_t last_backup;
-    int pipe_fd;
     bool ifworking;
 } backup_record;
 
