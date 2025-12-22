@@ -38,13 +38,46 @@ int add(char *src_dir, char *dest_dir, struct backup_record *process) {
     free(src_dir_real);
     return -1;
   }
-  if (ensure_dir_exists(dest_dir, st.st_mode) == -1) {
-    LOG_ERR("ensure_dir_exists");
-    free(src_dir_real);
-    return -1;
+
+  struct stat dest_st;
+  int dest_exists = (stat(dest_dir, &dest_st) == 0);
+
+  if (dest_exists) {
+    if (!S_ISDIR(dest_st.st_mode)) {
+      LOG_ERR("destination exists but is not a directory");
+      free(src_dir_real);
+      return -1;
+    }
+
+    DIR *check_dir = opendir(dest_dir);
+    if (check_dir == NULL) {
+      LOG_ERR("opendir dest_dir");
+      free(src_dir_real);
+      return -1;
+    }
+    struct dirent *entry;
+    int count = 0;
+    while ((entry = readdir(check_dir)) != NULL) {
+      if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+        count++;
+        break;
+      }
+    }
+    closedir(check_dir);
+
+    if (count > 0) {
+      LOG_ERR("destination directory is not empty");
+      free(src_dir_real);
+      return -1;
+    }
   } else {
-    clear_directory(dest_dir);
+    if (ensure_dir_exists(dest_dir, st.st_mode) == -1) {
+      LOG_ERR("ensure_dir_exists");
+      free(src_dir_real);
+      return -1;
+    }
   }
+
   backup_copy(src_dir_real, dest_dir);
   free(src_dir_real);
   process->last_backup = time(NULL);
