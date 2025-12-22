@@ -25,23 +25,30 @@ static void exit_handler(int sig) {
 int ensure_new_backup(char* src_dir, char* dest_dir, struct backup_record** head){
     while(*head != NULL){
         if(strcmp((*head)->src_path, src_dir) == 0 && strcmp((*head)->dest_path, dest_dir) == 0){
-            return -1; 
+            if((*head)->ifworking){
+                return -1; 
+            }else{
+                (*head)->ifworking=true;
+                return 1;
+            }
         }
         head = &((*head)->next);
     }
     return 0;
 }
 
+struct backup_record* find_backup(char* src_dir, char* dest_dir, struct backup_record* head){
+    while(head != NULL){
+        if(strcmp(head->src_path, src_dir) == 0 && strcmp(head->dest_path, dest_dir) == 0){
+            return head;
+        }
+        head = head->next;
+    }
+    return NULL;
+}
+
 int main()
 {
-    sigset_t mask;
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGTERM);
-    sigaddset(&mask, SIGINT);
-    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
-        ERR("sigprocmask");
-    }
-
     struct sigaction sa;
     sa.sa_handler = exit_handler;
     sa.sa_flags = 0;
@@ -57,9 +64,9 @@ int main()
     char *token;
     struct backup_record* head = NULL;
     printf("> ");
-
+    fflush(stdout);
     while(fgets(line, MAX_LINE, stdin) && !should_exit){
-        fflush(stdout);
+        
         line[strcspn(line, "\n")] = '\0';
 
         fflush(stdout);
@@ -91,7 +98,8 @@ int main()
         else if(strcmp(command, "add")==0){
             char* src_dir = args[0];
             for(int j=1; j<i-1; j++){
-                if(ensure_new_backup(src_dir, args[j], &head) == -1){
+                int check = ensure_new_backup(src_dir, args[j], &head);
+                if(check == -1){
                     printf("Backup from %s to %s already exists\n> ", src_dir, args[j]);
                     continue;
                 }
@@ -110,16 +118,28 @@ int main()
                 if (pipe(pipefd) == -1) {
                     ERR("pipe");
                 }
-
-                new_record->next = head;
-                if(head != NULL)
-                    head->prev = new_record;
-                new_record->prev = NULL;
-                new_record->last_backup = 0;
-                head = new_record;
-                new_record->pipe_fd = pipefd[0];
-                strncpy(new_record->src_path, src_dir, PATH_MAX);
-                strncpy(new_record->dest_path, args[j], PATH_MAX);
+                if(check==0){
+                    new_record->next = head;
+                    if(head != NULL)
+                        head->prev = new_record;
+                    new_record->prev = NULL;
+                    new_record->last_backup = 0;
+                    head = new_record;
+                    new_record->pipe_fd = pipefd[0];
+                    new_record->ifworking = true;
+                    strncpy(new_record->src_path, src_dir, PATH_MAX);
+                    strncpy(new_record->dest_path, args[j], PATH_MAX);
+                }
+                if(check==1){
+                    struct backup_record* existing = find_backup(src_dir, args[j], head);
+                    if(existing == NULL){
+                        LOG_ERR("find_backup");
+                        printf("failed to add backup\n> ");
+                        continue;
+                    }
+                    new_record = existing;
+                    new_record->pipe_fd = pipefd[0];
+                }
                 new_record->pid = fork();
 
                 if(new_record->pid == -1){
@@ -151,7 +171,9 @@ int main()
             }
         }
         else if(strcmp(command, "restore")==0){
-            if(i != 2){
+            printf("%d", i);
+            fflush(stdout);
+            if(i != 3){
                 printf("Invalid ammount of arguments\n> ");
                 continue;
             }
@@ -160,7 +182,7 @@ int main()
             char* dest_dir = args[1];
             while(current != NULL){
                 if(strcmp(current->src_path, src_dir) == 0 && strcmp(current->dest_path, dest_dir) == 0){
-                    restore_copy(dest_dir, src_dir, current);
+                    restore_copy(dest_dir, src_dir);
                     break;
                 }
                 current = current->next;
@@ -183,7 +205,9 @@ int main()
         }
         printf("\n> ");
     }
-    printf("\nExiting...\n");
-    exit_backup(head);
+    if(should_exit){
+        printf("\nExiting...\n");
+        exit_backup(head);
+    }
     return EXIT_SUCCESS;
 }

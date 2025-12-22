@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <libgen.h>
 #include <add_lib.h>
+#include <stdbool.h>
 
 int ensure_dir_exists(const char* path, mode_t mode) {
     struct stat _st;
@@ -160,7 +161,7 @@ void copy_symlink(const char* src_dir, const char* src_path, const char* dest_pa
     }
 }
 
-void backup_copy(const char* src_dir, char* dest_dir, struct backup_record* record){
+void backup_copy(const char* src_dir, char* dest_dir){
     DIR* dir = opendir(src_dir);
     if(dir == NULL){
         LOG_ERR("opendir");
@@ -189,7 +190,7 @@ void backup_copy(const char* src_dir, char* dest_dir, struct backup_record* reco
                     free((void*)dest_path);
                     continue;
                 }
-                backup_copy(src_path, dest_path, record);
+                backup_copy(src_path, dest_path);
             }
         }
         else if (S_ISREG(st.st_mode)) {
@@ -204,7 +205,7 @@ void backup_copy(const char* src_dir, char* dest_dir, struct backup_record* reco
     closedir(dir);
 }
 
-void restore_copy(const char* src_dir, char* dest_dir, struct backup_record* record){
+void restore_copy(const char* src_dir, char* dest_dir){
     DIR* dir = opendir(src_dir);
     if(dir == NULL){
         LOG_ERR("opendir");
@@ -212,38 +213,88 @@ void restore_copy(const char* src_dir, char* dest_dir, struct backup_record* rec
     }
     struct dirent* entry;
     while((entry = readdir(dir)) != NULL){
-        char* src_path = file_path(src_dir, entry->d_name);
-        if (src_path == NULL) {
+        char* backup_path = file_path(src_dir, entry->d_name);
+        if (backup_path == NULL) {
             continue;
         }
+        bool nofile= false;
         char* dest_path = file_path(dest_dir, entry->d_name);
         if (dest_path == NULL) {
-            continue;
+            nofile=true;
         }
 
-        struct stat st;
-        if(lstat(src_path, &st) == -1){
-            free(src_path);
+        struct stat backup_st;
+        if(lstat(backup_path, &backup_st) == -1){
+            free(backup_path);
             LOG_ERR("lstat(may be faulty link in src)");
             continue;
         }
-        if (S_ISDIR(st.st_mode) && st.st_mtime > record->last_backup) { 
+        struct stat dest_st;
+        if(lstat(dest_path, &dest_st) == -1){
+            free(backup_path);
+            free(dest_path);
+            continue;
+        }
+        if ((S_ISDIR(backup_st.st_mode) && nofile) || (S_ISDIR(backup_st.st_mode) && dest_st.st_mtime > backup_st.st_mtime)) { 
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) { 
-                if(ensure_dir_exists(dest_path, st.st_mode)==-1){
+                if(ensure_dir_exists(dest_path, backup_st.st_mode)==-1){
                     free((void*)dest_path);
                     continue;
                 }
-                backup_copy(src_path, dest_path, record);
+                restore_copy(backup_path, dest_path);
             }
         }
-        else if (S_ISREG(st.st_mode) && st.st_mtime > record->last_backup) {
-            copy_file(src_path, dest_path);
+        else if ((S_ISREG(backup_st.st_mode) && nofile ) || (S_ISREG(backup_st.st_mode) && dest_st.st_mtime > backup_st.st_mtime)) {
+            copy_file(backup_path, dest_path);
         } 
-        else if (S_ISLNK(st.st_mode) && st.st_mtime > record->last_backup) {  
-            copy_symlink(src_dir, src_path, dest_path);
+        else if ((S_ISLNK(backup_st.st_mode) && nofile ) || (S_ISLNK(backup_st.st_mode) && dest_st.st_mtime > backup_st.st_mtime)) {  
+            copy_symlink(src_dir, backup_path, dest_path);
         }
         free(dest_path);
-        free(src_path);
+        free(backup_path);
     }
     closedir(dir);
+    DIR* org_dir = opendir(dest_dir);
+    if(org_dir == NULL){
+        LOG_ERR("opendir");
+        return; 
+    }
+    struct dirent* org_entry;
+    while((org_entry = readdir(org_dir)) != NULL){
+        char* backup_path = file_path(src_dir, org_entry->d_name);
+        if (backup_path == NULL) {
+            continue;
+        }
+        char* dest_path = file_path(dest_dir, org_entry->d_name);
+        if (dest_path == NULL) {
+            free(backup_path);
+            continue;
+        }
+
+        struct stat backup_st;
+        if(lstat(backup_path, &backup_st) == -1){
+            struct stat dest_st;
+            if(lstat(dest_path, &dest_st) == -1){
+                free(backup_path);
+                free(dest_path);
+                continue;
+            }
+            if (S_ISDIR(dest_st.st_mode)) { 
+                clear_directory(dest_path);
+                if(rmdir(dest_path) == -1){
+                    LOG_ERR("rmdir during restore");
+                }
+            }
+            else {
+                if(remove(dest_path) == -1){
+                    LOG_ERR("remove during restore");
+                }
+            }
+            free(backup_path);
+            free(dest_path);
+            continue;
+        }
+        
+        
+    }
 }
