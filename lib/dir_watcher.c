@@ -144,14 +144,24 @@ void watch_directory(const char* src_dir, const char* dest_dir, struct backup_re
                 if (event->mask & IN_MODIFY || event->mask & IN_CLOSE_WRITE) {
                     char* dest_path = replace_prefix(event_path, src_dir, dest_dir);
                     if (dest_path) {
-                        copy_file(event_path, dest_path);
+                        struct stat st;
+                        if (lstat(event_path, &st) == 0 && S_ISLNK(st.st_mode)) {
+                            copy_symlink(src_dir, event_path, dest_path);
+                        } else {
+                            copy_file(event_path, dest_path);
+                        }
                         free(dest_path);
                     }
                 }
                 if (event->mask & IN_CREATE && !(event->mask & IN_ISDIR)) {
                     char* dest_path = replace_prefix(event_path, src_dir, dest_dir);
                     if (dest_path) {
-                        copy_file(event_path, dest_path);
+                        struct stat st;
+                        if (lstat(event_path, &st) == 0 && S_ISLNK(st.st_mode)) {
+                            copy_symlink(src_dir, event_path, dest_path);
+                        } else {
+                            copy_file(event_path, dest_path);
+                        }
                         free(dest_path);
                     }
                 }
