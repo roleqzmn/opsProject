@@ -132,3 +132,17 @@ void end_backup(char *src_dir, char *dest_dir, struct backup_record **head) {
     current = current->next;
   }
 }
+
+void help() {
+  printf("Available commands:\n");
+  printf("add \"<source_directory>\" \"<destination_directory1>\" "
+         "\"<destination_directory2>\" ... - Adds directories to backup\n");
+  printf("end \"<source_directory>\" \"<destination_directory1>\" "
+         "\"<destination_directory2>\" ... - Stops backup processes\n");
+  printf("restore \"<source_directory>\" \"<destination_directory>\" - "
+         "Restores files from destination to source directory (only if "
+         "there exists a backup from source to destination)\n");
+  printf("exit - Exits the program, terminating all backup processes\n");
+  printf("list - Lists all backups, active and restore-only\n");
+  printf("help - You can see right now on the screen\n");
+}

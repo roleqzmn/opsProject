@@ -23,6 +23,55 @@ volatile sig_atomic_t should_exit = 0;
 
 static void exit_handler(int sig) { should_exit = 1; }
 
+int parse_command_line(char *line, char *command, char **args) {
+  size_t pos = 0;
+  size_t line_len = strlen(line);
+
+  while (pos < line_len && line[pos] == ' ')
+    pos++;
+  size_t cmd_start = pos;
+  while (pos < line_len && line[pos] != ' ')
+    pos++;
+
+  strncpy(command, line + cmd_start, pos - cmd_start);
+  command[pos - cmd_start] = '\0';
+
+  if (strlen(command) == 0) {
+    return 0;
+  }
+
+  int arg_count = 0;
+  while (pos < line_len && arg_count < MAX_ARGS) {
+    while (pos < line_len && line[pos] == ' ')
+      pos++;
+    if (pos >= line_len)
+      break;
+
+    char arg_buf[PATH_MAX];
+    int arg_idx = 0;
+
+    if (line[pos] == '"') {
+      pos++;
+      while (pos < line_len && line[pos] != '"') {
+        arg_buf[arg_idx++] = line[pos];
+        pos++;
+      }
+      if (pos < line_len)
+        pos++;
+    } else {
+      while (pos < line_len && line[pos] != ' ') {
+        arg_buf[arg_idx++] = line[pos];
+        pos++;
+      }
+    }
+    arg_buf[arg_idx] = '\0';
+    args[arg_count] = strdup(arg_buf);
+    arg_count++;
+  }
+
+  return arg_count;
+}
+
 int ensure_new_backup(char *src_dir, char *dest_dir,
                       struct backup_record **head) {
   while (*head != NULL) {
@@ -53,6 +102,7 @@ struct backup_record *find_backup(char *src_dir, char *dest_dir,
 }
 
 int main() {
+  help();
   struct sigaction sa;
   sa.sa_handler = exit_handler;
   sa.sa_flags = 0;
@@ -76,49 +126,12 @@ int main() {
       continue;
     }
 
-    size_t pos = 0;
-    size_t line_len = strlen(line);
-    while (pos < line_len && line[pos] == ' ')
-      pos++;
-    size_t cmd_start = pos;
-    while (pos < line_len && line[pos] != ' ')
-      pos++;
     char command[PATH_MAX];
-    strncpy(command, line + cmd_start, pos - cmd_start);
-    command[pos - cmd_start] = '\0';
+    int arg_count = parse_command_line(line, command, args);
 
-    if (strlen(command) == 0) {
+    if (arg_count == 0 && strlen(command) == 0) {
       printf("\n> ");
       continue;
-    }
-
-    int arg_count = 0;
-    while (pos < line_len && arg_count < MAX_ARGS) {
-      while (pos < line_len && line[pos] == ' ')
-        pos++;
-      if (pos >= line_len)
-        break;
-
-      char arg_buf[PATH_MAX];
-      int arg_idx = 0;
-
-      if (line[pos] == '"') {
-        pos++;
-        while (pos < line_len && line[pos] != '"') {
-          arg_buf[arg_idx++] = line[pos];
-          pos++;
-        }
-        if (pos < line_len)
-          pos++;
-      } else {
-        while (pos < line_len && line[pos] != ' ') {
-          arg_buf[arg_idx++] = line[pos];
-          pos++;
-        }
-      }
-      arg_buf[arg_idx] = '\0';
-      args[arg_count] = strdup(arg_buf);
-      arg_count++;
     }
 
     if (strcmp(command, "exit") == 0) {
@@ -146,7 +159,7 @@ int main() {
           goto print_prompt;
         }
 
-        if (check == 0) {
+        if (check == 0) { // if doesnt exist creating new
           new_record->next = head;
           if (head != NULL)
             head->prev = new_record;
@@ -157,7 +170,7 @@ int main() {
           strncpy(new_record->src_path, src_dir, PATH_MAX);
           strncpy(new_record->dest_path, args[j], PATH_MAX);
         }
-        if (check == 1) {
+        if (check == 1) { // if exists reusing existing
           struct backup_record *existing = find_backup(src_dir, args[j], head);
           if (existing == NULL) {
             LOG_ERR("find_backup");
@@ -210,17 +223,7 @@ int main() {
         current = current->next;
       }
     } else if (strcmp(command, "help") == 0) {
-      printf("Available commands:\n");
-      printf("add \"<source_directory>\" \"<destination_directory1>\" "
-             "\"<destination_directory2>\" ... - Adds directories to backup\n");
-      printf("end \"<source_directory>\" \"<destination_directory1>\" "
-             "\"<destination_directory2>\" ... - Stops backup processes\n");
-      printf("restore \"<source_directory>\" \"<destination_directory>\" - "
-             "Restores files from destination to source directory (only if "
-             "there exists a backup from source to destination)\n");
-      printf("exit - Exits the program, terminating all backup processes\n");
-      printf("list - Lists all backups, active and restore-only\n");
-      printf("help - You can see right now on the screen\n");
+      help();
     } else if (strcmp(command, "list") == 0) {
       list_backups(head);
     } else {

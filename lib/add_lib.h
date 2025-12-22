@@ -40,3 +40,5 @@ void list_backups(struct backup_record *head); // lists all current backups
 void end_backup(char *src_dir, char *dest_dir,
                 struct backup_record **head); // stops a backup process and
                                               // removes it from the list
+
+void help(); // prints help message
