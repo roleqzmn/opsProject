@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
-#include <string_management.h>
+#include "string_management.h"
 #include <linux/limits.h>
 #include <utime.h>
-#include <copy_lib.h>
+#include "copy_lib.h"
 #include <signal.h>
 #include <time.h>
 #include <stdbool.h>

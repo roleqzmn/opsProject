@@ -1,5 +1,19 @@
-#define _POSIX_C_SOURCE 200809L
-#include <dir_watcher.h>
+#define _GNU_SOURCE
+#include "dir_watcher.h"
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <linux/limits.h>
+#include <utime.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/inotify.h>
+#include "copy_lib.h"
+#include "string_management.h"
+#include "add_lib.h"
 
 #define MAX_WATCHES 8192
 #define EVENT_BUF_LEN (64 * (sizeof(struct inotify_event) + NAME_MAX + 1))
@@ -85,6 +99,9 @@ void watch_directory(const char* src_dir, const char* dest_dir, struct backup_re
         char buffer[EVENT_BUF_LEN];
         ssize_t len = read(notify_fd, buffer, EVENT_BUF_LEN);
         if (len < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
             perror("read");
             exit(EXIT_FAILURE);
         }

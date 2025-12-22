@@ -1,20 +1,20 @@
 #pragma once
+#define _GNU_SOURCE
 
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string_management.h>
 #include <linux/limits.h>
 #include <utime.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/inotify.h>
-#include <copy_lib.h>
-#include <string_management.h>
-#include <add_lib.h>
+#include "copy_lib.h"
+#include "string_management.h"
+#include "add_lib.h"
 
 #define MAX_WATCHES 8192
 #define EVENT_BUF_LEN (64 * (sizeof(struct inotify_event) + NAME_MAX + 1))

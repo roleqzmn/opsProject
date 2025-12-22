@@ -1,20 +1,20 @@
-#define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE
 
-#include <copy_lib.h>
+#include "copy_lib.h"
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
-#include <string_management.h>
+#include "string_management.h"
 #include <linux/limits.h>
 #include <utime.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <libgen.h>
-#include <add_lib.h>
+#include "add_lib.h"
 #include <stdbool.h>
 
 int ensure_dir_exists(const char* path, mode_t mode) {
@@ -217,37 +217,46 @@ void restore_copy(const char* src_dir, char* dest_dir){
         if (backup_path == NULL) {
             continue;
         }
-        bool nofile= false;
         char* dest_path = file_path(dest_dir, entry->d_name);
-        if (dest_path == NULL) {
-            nofile=true;
-        }
 
         struct stat backup_st;
         if(lstat(backup_path, &backup_st) == -1){
             free(backup_path);
+            if (dest_path) free(dest_path);
             LOG_ERR("lstat(may be faulty link in src)");
             continue;
         }
         struct stat dest_st;
-        if(lstat(dest_path, &dest_st) == -1){
+        bool nofile;
+        if (dest_path == NULL) {
+            nofile = true;
+        } else {
+            nofile = (lstat(dest_path, &dest_st) == -1);
+            if (nofile && errno != ENOENT) {
+                free(backup_path);
+                free(dest_path);
+                LOG_ERR("lstat dest");
+                continue;
+            }
+        }
+        if (dest_path == NULL) {
             free(backup_path);
-            free(dest_path);
             continue;
         }
-        if ((S_ISDIR(backup_st.st_mode) && nofile) || (S_ISDIR(backup_st.st_mode) && dest_st.st_mtime > backup_st.st_mtime)) { 
+        if (S_ISDIR(backup_st.st_mode) && (nofile || (!nofile && dest_st.st_mtime > backup_st.st_mtime))) { 
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) { 
                 if(ensure_dir_exists(dest_path, backup_st.st_mode)==-1){
+                    free(backup_path);
                     free((void*)dest_path);
                     continue;
                 }
                 restore_copy(backup_path, dest_path);
             }
         }
-        else if ((S_ISREG(backup_st.st_mode) && nofile ) || (S_ISREG(backup_st.st_mode) && dest_st.st_mtime > backup_st.st_mtime)) {
+        else if (S_ISREG(backup_st.st_mode) && (nofile || (!nofile && dest_st.st_mtime > backup_st.st_mtime))) {
             copy_file(backup_path, dest_path);
         } 
-        else if ((S_ISLNK(backup_st.st_mode) && nofile ) || (S_ISLNK(backup_st.st_mode) && dest_st.st_mtime > backup_st.st_mtime)) {  
+        else if (S_ISLNK(backup_st.st_mode) && (nofile || (!nofile && dest_st.st_mtime > backup_st.st_mtime))) {  
             copy_symlink(src_dir, backup_path, dest_path);
         }
         free(dest_path);
@@ -295,6 +304,8 @@ void restore_copy(const char* src_dir, char* dest_dir){
             continue;
         }
         
-        
+        free(backup_path);
+        free(dest_path);
     }
+    closedir(org_dir);
 }

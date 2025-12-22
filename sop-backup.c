@@ -5,12 +5,12 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <add_lib.h>
+#include "lib/add_lib.h"
 #include <string.h>
-#include <add_lib.h>
-#include <dir_watcher.h>
-#include <copy_lib.h>
+#include "lib/dir_watcher.h"
+#include "lib/copy_lib.h"
 #include <signal.h>
+#include <ctype.h>
 
 #define ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), exit(EXIT_FAILURE))
 #define MAX_LINE 4096
@@ -68,9 +68,6 @@ int main()
     while(fgets(line, MAX_LINE, stdin) && !should_exit){
         
         line[strcspn(line, "\n")] = '\0';
-
-        fflush(stdout);
-        line[strcspn(line, "\n")] = '\0';
         if (strlen(line) == 0) {
             printf("\n> ");
             continue;
@@ -81,10 +78,12 @@ int main()
             printf("\n> ");
             continue;
         }
+        
         char* command = token;
         int i=0;
         while(token!=NULL && i < MAX_ARGS-1){
-            token=strtok(NULL, " ");
+            strtok(NULL, "\"");
+            token=strtok(NULL, "\"");
             args[i]=token;
             i++;
             
@@ -190,11 +189,11 @@ int main()
         }
         else if(strcmp(command, "help")==0){
             printf("Available commands:\n");
-            printf("add <source_directory> <destination_directory1> <destination_directory2> ... - Adds directories to backup\n");
-            printf("end <source_directory> <destination_directory1> <destination_directory2> ... - Stops backup processes\n");
-            printf("restore <source_directory> <destination_directory> - Restores files from destination to source directory (only if there exists a backup from source to destination)\n");
+            printf("add \"<source_directory>\" \"<destination_directory1>\" \"<destination_directory2>\" ... - Adds directories to backup\n");
+            printf("end \"<source_directory>\" \"<destination_directory1>\" \"<destination_directory2>\" ... - Stops backup processes\n");
+            printf("restore \"<source_directory>\" \"<destination_directory>\" - Restores files from destination to source directory (only if there exists a backup from source to destination)\n");
             printf("exit - Exits the program, terminating all backup processes\n");
-            printf("list - Lists all current backups\n");
+            printf("list - Lists all backups, active and restore-only\n");
             printf("help - You can see right now on the screen\n");       
         }
         else if(strcmp(command, "list")==0){

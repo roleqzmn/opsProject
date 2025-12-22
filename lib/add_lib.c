@@ -1,10 +1,20 @@
     #define _GNU_SOURCE
 
-    #include <add_lib.h>
-    #include <signal.h>     
-    #include <stdlib.h>
+    #include "add_lib.h"
+    #include <dirent.h>
     #include <sys/types.h>
+    #include <sys/stat.h>
     #include <sys/wait.h>
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <dirent.h>
+    #include "string_management.h"
+    #include <linux/limits.h>
+    #include <utime.h>
+    #include "copy_lib.h"
+    #include <signal.h>
+    #include <time.h>
+    #include <stdbool.h>
 
     int add(char* src_dir, char* dest_dir, struct backup_record* process){
     char* src_dir_real = realpath(src_dir, NULL);
@@ -49,6 +59,7 @@
                     usleep(500000);
                     if(waitpid(current->pid, NULL, WNOHANG) == 0){
                         kill(current->pid, SIGKILL);
+                        waitpid(current->pid, NULL, 0);
                     }
                     current = current->next;
                     free(temp);
@@ -61,6 +72,11 @@
             printf("Backup PID: %d\n", current->pid);
             printf("Source Path: %s\n", current->src_path);
             printf("Destination Path: %s\n", current->dest_path);
+            if(current->ifworking){
+                printf("Status: Working\n");
+            }else{
+                printf("Status: Not Working. Restore mode only.\n");
+            }
             printf("\n");
             current = current->next;
         }
@@ -75,6 +91,7 @@
                 usleep(500000);
                 if(waitpid(current->pid, NULL, WNOHANG) == 0){
                     kill(current->pid, SIGKILL);
+                    waitpid(current->pid, NULL, 0);
                 }
                 return;
             }
