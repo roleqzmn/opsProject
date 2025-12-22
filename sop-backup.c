@@ -123,17 +123,17 @@ int main()
                 int check = ensure_new_backup(src_dir, args[j], &head);
                 if(check == -1){
                     printf("Backup from %s to %s already exists\n> ", src_dir, args[j]);
-                    continue;
+                    goto print_prompt;
                 }
                 if(strstr(args[j], src_dir) == args[j]){
                     printf("Destination directory %s cannot be a subdirectory of source directory %s\n> ", args[j], src_dir);
-                    continue;
+                    goto print_prompt;
                 }
                 struct backup_record* new_record = malloc(sizeof(struct backup_record));
                 if(new_record == NULL){
                     LOG_ERR("malloc");
                     printf("failed to add backup\n> ");
-                    continue;
+                    goto print_prompt;
                 }
 
                 if(check==0){
@@ -152,7 +152,7 @@ int main()
                     if(existing == NULL){
                         LOG_ERR("find_backup");
                         printf("failed to add backup\n> ");
-                        continue;
+                        goto print_prompt;
                     }
                     new_record = existing;
                 }
@@ -163,7 +163,7 @@ int main()
                     printf("failed to add backup\n> ");
                     head = new_record->next;
                     free(new_record);
-                    continue;
+                    goto print_prompt;
                 }
                 if(new_record->pid == 0){ 
                     if(add(src_dir, args[j], head)== -1){
