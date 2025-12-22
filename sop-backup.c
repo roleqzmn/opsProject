@@ -61,7 +61,6 @@ int main()
 
     char line[MAX_LINE];
     char *args[MAX_ARGS];
-    char *token;
     struct backup_record* head = NULL;
     printf("> ");
     fflush(stdout);
@@ -73,22 +72,47 @@ int main()
             continue;
         }
 
-        token=strtok(line, " ");
-        if(token==NULL){
+        // Extract command
+        size_t pos = 0;
+        size_t line_len = strlen(line);
+        while (pos < line_len && line[pos] == ' ') pos++;
+        size_t cmd_start = pos;
+        while (pos < line_len && line[pos] != ' ') pos++;
+        char command[PATH_MAX];
+        strncpy(command, line + cmd_start, pos - cmd_start);
+        command[pos - cmd_start] = '\0';
+        
+        if (strlen(command) == 0) {
             printf("\n> ");
             continue;
         }
         
-        char* command = token;
-        int i=0;
-        while(token!=NULL && i < MAX_ARGS-1){
-            strtok(NULL, "\"");
-            token=strtok(NULL, "\"");
-            args[i]=token;
-            i++;
+        int arg_count = 0;
+        while (pos < line_len && arg_count < MAX_ARGS) {
+            while (pos < line_len && line[pos] == ' ') pos++;
+            if (pos >= line_len) break;
             
+            char arg_buf[PATH_MAX];
+            int arg_idx = 0;
+            
+            if (line[pos] == '"') {
+                pos++;
+                while (pos < line_len && line[pos] != '"') {
+                    arg_buf[arg_idx++] = line[pos];
+                    pos++;
+                }
+                if (pos < line_len) pos++;
+            } else {
+                while (pos < line_len && line[pos] != ' ') {
+                    arg_buf[arg_idx++] = line[pos];
+                    pos++;
+                }
+            }
+            arg_buf[arg_idx] = '\0';
+            args[arg_count] = strdup(arg_buf);
+            arg_count++;
         }
-        args[i]=NULL;
+        
         if(strcmp(command, "exit")==0){
             printf("Exiting...\n");
             exit_backup(head);
@@ -96,7 +120,7 @@ int main()
         }
         else if(strcmp(command, "add")==0){
             char* src_dir = args[0];
-            for(int j=1; j<i-1; j++){
+            for(int j=1; j<arg_count; j++){
                 int check = ensure_new_backup(src_dir, args[j], &head);
                 if(check == -1){
                     printf("Backup from %s to %s already exists\n> ", src_dir, args[j]);
@@ -164,17 +188,15 @@ int main()
         }
         else if(strcmp(command, "end")==0){
             char* src_dir = args[0];
-            for(int j=1; j<i-1; j++){
+            for(int j=1; j<arg_count; j++){
                 char* dest_dir = args[j];
                 end_backup(src_dir, dest_dir, &head);
             }
         }
         else if(strcmp(command, "restore")==0){
-            printf("%d", i);
-            fflush(stdout);
-            if(i != 3){
-                printf("Invalid ammount of arguments\n> ");
-                continue;
+            if(arg_count != 2){
+                printf("Invalid amount of arguments\n");
+                goto print_prompt;
             }
             struct backup_record* current = head;
             char* src_dir = args[0];
@@ -202,6 +224,8 @@ int main()
         else{
             printf("Unknown command: %s\n", command);
         }
+        print_prompt:
+        for(int k=0; k<arg_count; k++) free(args[k]);
         printf("\n> ");
     }
     if(should_exit){
