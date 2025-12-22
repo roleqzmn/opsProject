@@ -127,10 +127,15 @@ void end_backup(char *src_dir, char *dest_dir, struct backup_record **head) {
         kill(current->pid, SIGKILL);
         waitpid(current->pid, NULL, 0);
       }
+      printf("Backup process from %s to %s has been terminated.\n", src_dir,
+             dest_dir);
+      fflush(stdout);
       return;
     }
     current = current->next;
   }
+  printf("No active backup process found from %s to %s.\n", src_dir, dest_dir);
+  fflush(stdout);
 }
 
 void help() {
