@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COPY_LIB_H
+#define COPY_LIB_H
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -31,3 +32,5 @@ void clear_directory(
 
 void restore_copy(const char *src_dir,
                   char *dest_dir); // restores files from src_dir to dest_dir
+
+#endif // COPY_LIB_H

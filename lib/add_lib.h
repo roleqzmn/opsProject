@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ADD_LIB_H
+#define ADD_LIB_H
 #include <dirent.h>
 #include <linux/limits.h>
 #include <signal.h>
@@ -42,3 +43,5 @@ void end_backup(char *src_dir, char *dest_dir,
                                               // removes it from the list
 
 void help(); // prints help message
+
+#endif // ADD_LIB_H

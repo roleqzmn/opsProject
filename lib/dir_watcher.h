@@ -1,4 +1,6 @@
-#pragma once
+#ifndef DIR_WATCHER_H
+#define DIR_WATCHER_H
+
 #define _GNU_SOURCE
 
 #include <dirent.h>
@@ -50,3 +52,4 @@ void watch_directory(
     const char *src_dir, const char *dest_dir,
     struct backup_record *head); // watches a directory for changes and mirrors
                                  // them to the destination directory
+#endif                           // DIR_WATCHER_H
