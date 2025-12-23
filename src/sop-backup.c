@@ -99,23 +99,23 @@ int main()
         }
         else if (strcmp(command, "add") == 0)
         {
-            char *src_dir = expand_tilde(args[0]);
+            char *src_dir = args[0];
             for (int j = 1; j < arg_count; j++)
             {
-                char *expanded_dest = expand_tilde(args[j]);
-                int check = ensure_new_backup(src_dir, expanded_dest, &head);
+                char *dest_dir=args[j];
+                int check = ensure_new_backup(src_dir, dest_dir, &head);
                 if (check == -1)
                 {
-                    printf("Backup from %s to %s already exists\n> ", src_dir, expanded_dest);
+                    printf("Backup from %s to %s already exists\n> ", src_dir, dest_dir);
                     goto print_prompt;
                 }
-                if (strstr(expanded_dest, src_dir) == expanded_dest &&
-                    (expanded_dest[strlen(src_dir)] == '/' || expanded_dest[strlen(src_dir)] == '\0'))
+                if (strstr(dest_dir, src_dir) == dest_dir &&
+                    (dest_dir[strlen(src_dir)] == '/' || dest_dir[strlen(src_dir)] == '\0'))
                 {
                     printf(
                         "Destination directory %s cannot be a subdirectory of source "
                         "directory %s\n> ",
-                        expanded_dest, src_dir);
+                        dest_dir, src_dir);
                     goto print_prompt;
                 }
 
@@ -138,11 +138,11 @@ int main()
                     head = new_record;
                     new_record->ifworking = true;
                     strncpy(new_record->src_path, src_dir, PATH_MAX);
-                    strncpy(new_record->dest_path, expanded_dest, PATH_MAX);
+                    strncpy(new_record->dest_path, dest_dir, PATH_MAX);
                 }
                 if (check == 1)
                 {  // if exists reusing existing
-                    new_record = find_backup(src_dir, expanded_dest, head);
+                    new_record = find_backup(src_dir, dest_dir, head);
                     if (new_record == NULL)
                     {
                         LOG_ERR("find_backup");
@@ -167,32 +167,28 @@ int main()
                 }
                 if (new_record->pid == 0)
                 {
-                    if (add(src_dir, expanded_dest, head) == -1)
+                    if (add(src_dir, dest_dir, head) == -1)
                     {
                         exit(EXIT_FAILURE);
                     }
-                    watch_directory(src_dir, expanded_dest, head);
+                    watch_directory(src_dir, dest_dir, head);
                     exit(EXIT_SUCCESS);
                 }
                 else
                 {
-                    printf("Started backup from %s to %s with PID %d\n", src_dir, expanded_dest, new_record->pid);
+                    printf("Started backup from %s to %s with PID %d\n", src_dir, dest_dir, new_record->pid);
                     fflush(stdout);
                 }
-                free(expanded_dest);
             }
-            free(src_dir);
         }
         else if (strcmp(command, "end") == 0)
         {
-            char *src_dir = expand_tilde(args[0]);
+            char *src_dir = args[0];
             for (int j = 1; j < arg_count; j++)
             {
-                char *dest_dir = expand_tilde(args[j]);
+                char *dest_dir = args[j];
                 end_backup(src_dir, dest_dir, &head);
-                free(dest_dir);
             }
-            free(src_dir);
         }
         else if (strcmp(command, "restore") == 0)
         {
@@ -202,8 +198,8 @@ int main()
                 goto print_prompt;
             }
             struct backup_record *current = head;
-            char *src_dir = expand_tilde(args[0]);
-            char *dest_dir = expand_tilde(args[1]);
+            char *src_dir = args[0];
+            char *dest_dir = args[1];
             while (current != NULL)
             {
                 if (strcmp(current->src_path, src_dir) == 0 && strcmp(current->dest_path, dest_dir) == 0)
@@ -213,8 +209,6 @@ int main()
                 }
                 current = current->next;
             }
-            free(src_dir);
-            free(dest_dir);
         }
         else if (strcmp(command, "help") == 0)
         {

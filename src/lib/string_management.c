@@ -41,33 +41,6 @@ char *replace_prefix(const char *path, const char *old_prefix, const char *new_p
     return result;
 }
 
-char *expand_tilde(const char *path)
-{
-    if (!path || path[0] != '~')
-    {
-        return strdup(path);
-    }
-
-    const char *home = getenv("HOME");
-    if (!home)
-    {
-        fprintf(stderr, "Brak zmiennej HOME!\n");
-        return NULL;
-    }
-
-    size_t home_len = strlen(home);
-    size_t path_len = strlen(path);
-
-    char *result = malloc(home_len + path_len);
-    if (!result)
-        return NULL;
-
-    strcpy(result, home);
-    strcat(result, path + 1);
-
-    return result;
-}
-
 int parse_command_line(char *line, char *command, char **args)
 {
     size_t pos = 0;

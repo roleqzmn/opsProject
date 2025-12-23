@@ -16,8 +16,6 @@ char *file_path(const char *dir,
 char *replace_prefix(const char *path, const char *old_prefix,
                      const char *new_prefix);  // replaces old_prefix with new_prefix in path
 
-char *expand_tilde(const char *path);  // expands ~ to the user's home directory
-
 int parse_command_line(char *line, char *command,
                        char **args);  // parses a command line into command and arguments
 #endif                                // STRING_MANAGEMENT_H
