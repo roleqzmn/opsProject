@@ -10,7 +10,7 @@ NAME=sop-backup
 
 all: ${NAME}
 
-SOURCES=$(shell find . -type f -iname '*.c')
+SOURCES=$(shell find src -type f -iname '*.c')
 
 OBJECTS=$(foreach x, $(basename $(SOURCES)), $(x).o)
 
