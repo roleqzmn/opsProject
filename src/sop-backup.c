@@ -12,14 +12,72 @@
 #include "lib/add_lib.h"
 #include "lib/copy_lib.h"
 #include "lib/dir_watcher.h"
+#include <sys/wait.h>
 
 #define ERR(source) (perror(source), fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), exit(EXIT_FAILURE))
 #define MAX_LINE 4096
 #define MAX_ARGS 100
 
 volatile sig_atomic_t should_exit = 0;
+static struct backup_record **global_head = NULL;
 
 static void exit_handler(int sig) { should_exit = 1; }
+
+static void sigchld_handler(int sig)
+{
+    int saved_errno = errno;
+    pid_t pid;
+    int status;
+    
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
+    {
+        if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
+        {
+            if (global_head != NULL)
+            {
+                struct backup_record *current = *global_head;
+                while (current != NULL)
+                {
+                    if (current->pid == pid)
+                    {
+                        printf("\nBackup process %d failed, removing from list\n", pid);
+                        current->ifworking = false;
+                        if (current->prev != NULL)
+                            current->prev->next = current->next;
+                        else
+                            *global_head = current->next;
+                        
+                        if (current->next != NULL)
+                            current->next->prev = current->prev;
+                        
+                        free(current);
+                        printf("> ");
+                        fflush(stdout);
+                        break;
+                    }
+                    current = current->next;
+                }
+            }
+        }
+        else if (WIFEXITED(status))
+        {
+            if (global_head != NULL)
+            {
+                struct backup_record *current = *global_head;
+                while (current != NULL)
+                {
+                    if (current->pid == pid)
+                    {
+                        current->ifworking = false;
+                        break;
+                    }
+                    current = current->next;
+                }
+            }
+        }
+    }
+    errno = saved_errno;
+}
 
 int ensure_new_backup(char *src_dir, char *dest_dir, struct backup_record **head)
 {
@@ -67,10 +125,21 @@ int main()
     {
         ERR("sigaction");
     }
+    
+    struct sigaction sa_chld;
+    sa_chld.sa_handler = sigchld_handler;
+    sa_chld.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+    sigemptyset(&sa_chld.sa_mask);
+    
+    if (sigaction(SIGCHLD, &sa_chld, NULL) == -1)
+    {
+        ERR("sigaction SIGCHLD");
+    }
 
     char line[MAX_LINE];
     char *args[MAX_ARGS];
     struct backup_record *head = NULL;
+    global_head = &head;
     printf("> ");
     fflush(stdout);
     while (fgets(line, MAX_LINE, stdin) && !should_exit)
