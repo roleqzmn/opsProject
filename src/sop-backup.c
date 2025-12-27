@@ -29,8 +29,10 @@ static void sigchld_handler(int sig)
     pid_t pid;
     int status;
     
+    // Reap all terminated child processes to prevent zombies
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
     {
+        // Handle failed backup process - remove from list
         if (WIFEXITED(status) && WEXITSTATUS(status) != EXIT_SUCCESS)
         {
             if (global_head != NULL)
@@ -81,6 +83,7 @@ static void sigchld_handler(int sig)
 
 int ensure_new_backup(char *src_dir, char *dest_dir, struct backup_record **head)
 {
+    // Check if backup already exists: -1 if working, 1 if exists but not working, 0 if new
     while (*head != NULL)
     {
         if (strcmp((*head)->src_path, src_dir) == 0 && strcmp((*head)->dest_path, dest_dir) == 0)
@@ -190,8 +193,9 @@ int main()
 
                 struct backup_record *new_record = NULL;
 
+                // Create new backup record if it doesn't exist
                 if (check == 0)
-                {  // if doesnt exist creating new
+                {
                     new_record = malloc(sizeof(struct backup_record));
                     if (new_record == NULL)
                     {
@@ -209,8 +213,9 @@ int main()
                     strncpy(new_record->src_path, src_dir, PATH_MAX);
                     strncpy(new_record->dest_path, dest_dir, PATH_MAX);
                 }
+                // Reuse existing record for restore-only backups
                 if (check == 1)
-                {  // if exists reusing existing
+                {
                     new_record = find_backup(src_dir, dest_dir, head);
                     if (new_record == NULL)
                     {
@@ -234,6 +239,7 @@ int main()
                     }
                     goto print_prompt;
                 }
+                // Child process: perform initial backup and start watching
                 if (new_record->pid == 0)
                 {
                     if (add(src_dir, dest_dir, head) == -1)
@@ -269,6 +275,7 @@ int main()
             struct backup_record *current = head;
             char *src_dir = args[0];
             char *dest_dir = args[1];
+            // Find matching backup record before restoring
             while (current != NULL)
             {
                 if (strcmp(current->src_path, src_dir) == 0 && strcmp(current->dest_path, dest_dir) == 0)

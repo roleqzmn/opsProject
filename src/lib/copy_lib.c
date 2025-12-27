@@ -39,6 +39,7 @@ int ensure_dir_exists(const char *path, mode_t mode)
         return -1;
     }
 
+    // Recursively create parent directories
     char *path_cp = strdup(path);
     if (path_cp == NULL)
     {
@@ -74,6 +75,7 @@ void clear_directory(const char *path)
         return;
     }
     struct dirent *entry;
+    // Recursively remove all files and subdirectories
     while ((entry = readdir(dir)) != NULL)
     {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
@@ -151,6 +153,7 @@ void copy_file(const char *src_path, const char *dest_path)
     fclose(src);
     fclose(dest);
 
+    // Preserve file permissions and timestamps
     if (chmod(dest_path, st.st_mode) == -1)
     {
         LOG_ERR("chmod copy_file");
@@ -173,6 +176,7 @@ void copy_symlink(const char *src_dir, const char *src_path, const char *dest_pa
         return;
     }
     link_target[len] = '\0';
+    // Update symlink target if it points inside source directory
     char *same_folder_target = strstr(link_target, src_dir);
     if (same_folder_target != NULL)
     {
@@ -300,6 +304,7 @@ void restore_copy(const char *src_dir, char *dest_dir)
             free(backup_path);
             continue;
         }
+        // Restore only if file doesn't exist or destination is newer
         if (S_ISDIR(backup_st.st_mode) && (nofile || (!nofile && dest_st.st_mtime > backup_st.st_mtime)))
         {
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
@@ -325,6 +330,7 @@ void restore_copy(const char *src_dir, char *dest_dir)
         free(backup_path);
     }
     closedir(dir);
+    // Remove files from destination that don't exist in backup
     DIR *org_dir = opendir(dest_dir);
     if (org_dir == NULL)
     {

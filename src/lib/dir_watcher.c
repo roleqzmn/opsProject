@@ -106,6 +106,7 @@ void add_watcher_recursive(int notify_fd, struct WatchMap *watch_map, const char
 void watch_directory(const char *src_dir, const char *dest_dir, struct backup_record *head)
 {
     struct WatchMap watch_map = {0};
+    // Initialize inotify for filesystem monitoring
     int notify_fd = inotify_init();
     if (notify_fd < 0)
     {
@@ -114,6 +115,7 @@ void watch_directory(const char *src_dir, const char *dest_dir, struct backup_re
     }
     watch_map.watch_count = 0;
     add_watcher_recursive(notify_fd, &watch_map, src_dir);
+    // Main event loop
     while (watch_map.watch_count > 0)
     {
         char buffer[EVENT_BUF_LEN];
@@ -145,14 +147,17 @@ void watch_directory(const char *src_dir, const char *dest_dir, struct backup_re
                 strncpy(event_path, watch->path, sizeof(event_path));
             }
 
+            // Watch was removed (e.g., directory deleted)
             if (event->mask & IN_IGNORED)
             {
                 remove_from_map(&watch_map, event->wd);
             }
+            // Handle directory events
             else if (event->mask & IN_ISDIR)
             {
                 if (event->mask & IN_CREATE)
                 {
+                    // New directory created - add watcher and create in backup
                     add_watcher_recursive(notify_fd, &watch_map, event_path);
                     char *dest_path = replace_prefix(event_path, src_dir, dest_dir);
                     if (dest_path)
@@ -163,6 +168,7 @@ void watch_directory(const char *src_dir, const char *dest_dir, struct backup_re
                 }
                 if (event->mask & IN_DELETE)
                 {
+                    // Directory deleted - remove from backup
                     char *dest_path = replace_prefix(event_path, src_dir, dest_dir);
                     if (dest_path)
                     {
@@ -175,8 +181,10 @@ void watch_directory(const char *src_dir, const char *dest_dir, struct backup_re
                     }
                 }
             }
+            // Handle file events (non-directories)
             else
             {
+                // File modified - copy changes
                 if (event->mask & IN_MODIFY || event->mask & IN_CLOSE_WRITE)
                 {
                     char *dest_path = replace_prefix(event_path, src_dir, dest_dir);
@@ -194,6 +202,7 @@ void watch_directory(const char *src_dir, const char *dest_dir, struct backup_re
                         free(dest_path);
                     }
                 }
+                // New file created - copy to backup
                 if (event->mask & IN_CREATE && !(event->mask & IN_ISDIR))
                 {
                     char *dest_path = replace_prefix(event_path, src_dir, dest_dir);
@@ -211,6 +220,7 @@ void watch_directory(const char *src_dir, const char *dest_dir, struct backup_re
                         free(dest_path);
                     }
                 }
+                // File deleted - remove from backup
                 if (event->mask & IN_DELETE && !(event->mask & IN_ISDIR))
                 {
                     char *dest_path = replace_prefix(event_path, src_dir, dest_dir);
@@ -230,6 +240,7 @@ void watch_directory(const char *src_dir, const char *dest_dir, struct backup_re
         head->last_backup = time(NULL);
     }
 
+    // Clean up: free memory and close inotify descriptor
     for (int i = 0; i < watch_map.watch_count; i++)
     {
         free(watch_map.watch_map[i].path);

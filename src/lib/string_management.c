@@ -17,7 +17,10 @@ char *file_path(const char *dir, const char *file_name)
         return NULL;
     }
     strcpy(path, dir);
-    strcat(path, "/");
+    if (dir[dir_len - 1] != '/')
+    {
+        strcat(path, "/");
+    }
     strcat(path, file_name);
     return path;
 }
@@ -71,6 +74,7 @@ int parse_command_line(char *line, char *command, char **args)
         char arg_buf[PATH_MAX];
         int arg_idx = 0;
 
+        // Handle quoted arguments (with spaces)
         if (line[pos] == '"')
         {
             pos++;
@@ -92,7 +96,14 @@ int parse_command_line(char *line, char *command, char **args)
         }
         arg_buf[arg_idx] = '\0';
         args[arg_count] = strdup(arg_buf);
-
+        if(args[arg_count] == NULL)
+        {
+            for (int i = 0; i < arg_count; i++)
+            {
+                free(args[i]);
+            }
+            return -1;
+        }
         arg_count++;
     }
 

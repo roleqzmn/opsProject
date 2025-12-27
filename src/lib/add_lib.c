@@ -47,6 +47,7 @@ int add(char *src_dir, char *dest_dir, struct backup_record *process)
     struct stat dest_st;
     int dest_exists = (stat(dest_dir, &dest_st) == 0);
 
+    // Verify destination directory is empty or create it
     if (dest_exists)
     {
         if (!S_ISDIR(dest_st.st_mode))
@@ -65,6 +66,7 @@ int add(char *src_dir, char *dest_dir, struct backup_record *process)
         }
         struct dirent *entry;
         int count = 0;
+        // Check if directory is empty (excluding . and ..)
         while ((entry = readdir(check_dir)) != NULL)
         {
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
@@ -104,6 +106,7 @@ void exit_backup(struct backup_record *head)
     while (current != NULL)
     {
         struct backup_record *temp = current;
+        // Try graceful termination first (SIGTERM), then force kill (SIGKILL)
         kill(current->pid, SIGTERM);
         usleep(500000);
         if (waitpid(current->pid, NULL, WNOHANG) == 0)
