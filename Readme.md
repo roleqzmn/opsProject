@@ -1,4 +1,4 @@
-Interactive Backup Management System
+ Interactive Backup Management System
 
 An automated system designed to manage directory backups in a Linux environment. The system allows for real-time monitoring of source directories and mirrors changes across multiple target locations using parallel subprocesses.
 
@@ -11,9 +11,9 @@ Parallel Execution: Each target directory is managed by an independent subproces
 
 Real-Time Monitoring: Uses the inotify API to immediately mirror changes in files, symbolic links, and subfolders.
 
-Smart Symlink Handling:If a symbolic link contains an absolute path leading to the source directory, the backup creates a symlink pointing to the relevant file in the target directory. In all other cases, the path in the link is copied unchanged.
+Smart Symlink Handling: If a symbolic link contains an absolute path leading to the source directory, the backup creates a symlink pointing to the relevant file in the target directory. In all other cases, the path in the link is copied unchanged.
 
-Safety Checks:Prevents creating a backup of a directory inside itself to avoid infinite recursion. Prevents creating multiple backups with the same source and target paths.
+Safety Checks: Prevents creating a backup of a directory inside itself to avoid infinite recursion. Prevents creating multiple backups with the same source and target paths.
 
 Differential Restoration: The restore command copies the directory structure back to the source, copying only files that have changed and deleting files not present in the backup.
 
