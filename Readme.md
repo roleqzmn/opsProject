@@ -49,8 +49,11 @@ Technical Details:
 
 
 Platform: Linux.
+
 Key APIs: inotify for monitoring, fork for parallelism, and realpath for path comparison.
+
 Signal Handling: Correctly exits in response to SIGINT and SIGTERM while ignoring other signals.
+
 Path Management: Supports directory names with spaces through quote handling.
 
 
@@ -71,8 +74,14 @@ make clean
 
 
 Project Structure:
+
 sop-backup.c: Main entry point and command loop handler.
+
 add_lib.c/h: Logic for adding, listing, and ending backup processes.
+
 copy_lib.c/h: Core logic for file copying, symlink handling, and directory clearing.
+
 dir_watcher.c/h: Implementation of recursive directory watching using inotify.
+
 string_management.c/h: Utilities for command line parsing and path string manipulation.
+
